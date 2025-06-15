@@ -1,52 +1,14 @@
+
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Database, Map, BarChart3, Users, FileText, MapPin, Heart, GraduationCap, Shield } from 'lucide-react';
-import { useState } from 'react';
+import { Database, Map, BarChart3, Users, FileText, MapPin } from 'lucide-react';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [selectedTopic, setSelectedTopic] = useState('health');
-
-  const topics = [
-    { id: 'health', name: 'Saúde', icon: Heart, color: 'text-red-600' },
-    { id: 'education', name: 'Educação', icon: GraduationCap, color: 'text-blue-600' },
-    { id: 'security', name: 'Segurança', icon: Shield, color: 'text-green-600' }
-  ];
-
-  const topicData = {
-    health: {
-      title: 'Indicadores de Saúde',
-      stats: [
-        { label: 'UBS Ativas', value: '28', change: '+2 este mês' },
-        { label: 'Atendimentos/Mês', value: '1.543', change: '+12% vs anterior' },
-        { label: 'Cobertura Vacinal', value: '87%', change: '+3% vs meta' }
-      ]
-    },
-    education: {
-      title: 'Indicadores de Educação',
-      stats: [
-        { label: 'Escolas Municipais', value: '45', change: '100% funcionando' },
-        { label: 'Alunos Matriculados', value: '8.234', change: '+5% vs 2023' },
-        { label: 'Taxa de Aprovação', value: '92%', change: '+2% vs anterior' }
-      ]
-    },
-    security: {
-      title: 'Indicadores de Segurança',
-      stats: [
-        { label: 'Ocorrências/Mês', value: '156', change: '-8% vs anterior' },
-        { label: 'Câmeras Ativas', value: '89', change: '12 instaladas' },
-        { label: 'Tempo Resposta', value: '8min', change: '-2min melhoria' }
-      ]
-    }
-  };
-
-  const currentTopicData = topicData[selectedTopic as keyof typeof topicData];
-  const currentTopic = topics.find(t => t.id === selectedTopic);
 
   const moduleCards = [
     {
@@ -96,106 +58,6 @@ const Dashboard = () => {
             <span className="text-sm">Papel: {user?.role === 'admin' ? 'Administrador' : 'Usuário'}</span>
             <span className="text-sm">•</span>
             <span className="text-sm">Último acesso: Hoje às 09:30</span>
-          </div>
-        </div>
-
-        {/* Interactive Heat Map Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Map Area */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center space-x-2">
-                      {currentTopic && <currentTopic.icon className={`h-5 w-5 ${currentTopic.color}`} />}
-                      <span>Mapa de Calor - {currentTopicData.title}</span>
-                    </CardTitle>
-                    <CardDescription>
-                      Visualização espacial dos dados por região
-                    </CardDescription>
-                  </div>
-                  <Select value={selectedTopic} onValueChange={setSelectedTopic}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {topics.map((topic) => {
-                        const Icon = topic.icon;
-                        return (
-                          <SelectItem key={topic.id} value={topic.id}>
-                            <div className="flex items-center space-x-2">
-                              <Icon className={`h-4 w-4 ${topic.color}`} />
-                              <span>{topic.name}</span>
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="relative h-96 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
-                  <div className="text-center space-y-4">
-                    <Map className="h-16 w-16 text-gray-400 mx-auto" />
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-600">Mapa de Calor Interativo</h3>
-                      <p className="text-gray-500">
-                        Visualização de {currentTopicData.title.toLowerCase()} por região
-                      </p>
-                      <p className="text-sm text-gray-400 mt-2">
-                        Tópico selecionado: {currentTopic?.name}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Topic Stats */}
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Estatísticas do Tópico</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {currentTopicData.stats.map((stat, index) => (
-                  <div key={index} className="p-3 bg-gray-50 rounded-lg">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">{stat.label}</p>
-                        <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                      </div>
-                    </div>
-                    <p className="text-xs text-green-600 mt-1">{stat.change}</p>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Ações Rápidas</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button className="w-full" variant="outline" size="sm">
-                  Ver Relatório Detalhado
-                </Button>
-                <Button className="w-full" variant="outline" size="sm">
-                  Exportar Dados
-                </Button>
-                <Button 
-                  className="w-full" 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => navigate('/webgis')}
-                >
-                  Abrir no WebGIS
-                </Button>
-              </CardContent>
-            </Card>
           </div>
         </div>
 
