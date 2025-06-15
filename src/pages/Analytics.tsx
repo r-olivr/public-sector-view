@@ -1,15 +1,44 @@
+
 import Layout from '@/components/Layout';
-import ChoroplethMap from '@/components/ChoroplethMap';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, ResponsiveContainer } from 'recharts';
-import { BarChart3, TrendingUp, Users, Calendar, Heart, GraduationCap, Shield } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { BarChart3, TrendingUp, Users, Calendar, Heart, GraduationCap, Shield, MapPin } from 'lucide-react';
 import { useState } from 'react';
 
 const Analytics = () => {
   const [selectedTopic, setSelectedTopic] = useState('saude');
 
+  // Mock neighborhood data for choropleth map
+  const neighborhoodsData = {
+    saude: [
+      { id: 'centro', name: 'Centro', value: 85, cases: 234, coords: 'M 50,20 L 150,20 L 150,120 L 50,120 Z' },
+      { id: 'vila-nova', name: 'Vila Nova', value: 92, cases: 312, coords: 'M 150,20 L 250,20 L 250,120 L 150,120 Z' },
+      { id: 'jardim-sul', name: 'Jardim Sul', value: 67, cases: 178, coords: 'M 50,120 L 150,120 L 150,220 L 50,220 Z' },
+      { id: 'alto-da-serra', name: 'Alto da Serra', value: 73, cases: 198, coords: 'M 150,120 L 250,120 L 250,220 L 150,220 Z' },
+      { id: 'parque-industrial', name: 'Parque Industrial', value: 89, cases: 267, coords: 'M 250,20 L 350,20 L 350,150 L 250,150 Z' },
+      { id: 'bela-vista', name: 'Bela Vista', value: 78, cases: 189, coords: 'M 250,150 L 350,150 L 350,220 L 250,220 Z' }
+    ],
+    educacao: [
+      { id: 'centro', name: 'Centro', value: 94, cases: 2340, coords: 'M 50,20 L 150,20 L 150,120 L 50,120 Z' },
+      { id: 'vila-nova', name: 'Vila Nova', value: 87, cases: 1890, coords: 'M 150,20 L 250,20 L 250,120 L 150,120 Z' },
+      { id: 'jardim-sul', name: 'Jardim Sul', value: 91, cases: 2156, coords: 'M 50,120 L 150,120 L 150,220 L 50,220 Z' },
+      { id: 'alto-da-serra', name: 'Alto da Serra', value: 89, cases: 1987, coords: 'M 150,120 L 250,120 L 250,220 L 150,220 Z' },
+      { id: 'parque-industrial', name: 'Parque Industrial', value: 93, cases: 2234, coords: 'M 250,20 L 350,20 L 350,150 L 250,150 Z' },
+      { id: 'bela-vista', name: 'Bela Vista', value: 88, cases: 1876, coords: 'M 250,150 L 350,150 L 350,220 L 250,220 Z' }
+    ],
+    seguranca: [
+      { id: 'centro', name: 'Centro', value: 45, cases: 156, coords: 'M 50,20 L 150,20 L 150,120 L 50,120 Z' },
+      { id: 'vila-nova', name: 'Vila Nova', value: 67, cases: 234, coords: 'M 150,20 L 250,20 L 250,120 L 150,120 Z' },
+      { id: 'jardim-sul', name: 'Jardim Sul', value: 23, cases: 89, coords: 'M 50,120 L 150,120 L 150,220 L 50,220 Z' },
+      { id: 'alto-da-serra', name: 'Alto da Serra', value: 34, cases: 123, coords: 'M 150,120 L 250,120 L 250,220 L 150,220 Z' },
+      { id: 'parque-industrial', name: 'Parque Industrial', value: 52, cases: 187, coords: 'M 250,20 L 350,20 L 350,150 L 250,150 Z' },
+      { id: 'bela-vista', name: 'Bela Vista', value: 38, cases: 134, coords: 'M 250,150 L 350,150 L 350,220 L 250,220 Z' }
+    ]
+  };
+
+  // Mock data organized by topics
   const topicsData = {
     saude: {
       title: 'Indicadores de Saúde',
@@ -71,7 +100,29 @@ const Analytics = () => {
   };
 
   const currentData = topicsData[selectedTopic];
+  const currentNeighborhoods = neighborhoodsData[selectedTopic];
   const TopicIcon = currentData.icon;
+
+  const getChoroplethColor = (value, topic) => {
+    const intensity = value / 100;
+    const colors = {
+      saude: {
+        light: `rgba(239, 68, 68, ${0.2 + intensity * 0.6})`,
+        dark: `rgba(239, 68, 68, ${0.4 + intensity * 0.6})`
+      },
+      educacao: {
+        light: `rgba(59, 130, 246, ${0.2 + intensity * 0.6})`,
+        dark: `rgba(59, 130, 246, ${0.4 + intensity * 0.6})`
+      },
+      seguranca: {
+        light: `rgba(5, 150, 105, ${0.2 + intensity * 0.6})`,
+        dark: `rgba(5, 150, 105, ${0.4 + intensity * 0.6})`
+      }
+    };
+    return colors[topic];
+  };
+
+  const [hoveredNeighborhood, setHoveredNeighborhood] = useState(null);
 
   return (
     <Layout>
@@ -80,7 +131,7 @@ const Analytics = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Análises</h1>
             <p className="text-gray-600 mt-2">
-              Mapa coroplético interativo e visualizações por tópico
+              Mapa coroplético e visualizações interativas por tópico
             </p>
           </div>
           
@@ -126,9 +177,6 @@ const Analytics = () => {
           </CardHeader>
         </Card>
 
-        {/* Interactive Choropleth Map */}
-        <ChoroplethMap height="600px" />
-
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {currentData.kpis.map((kpi, index) => (
@@ -147,33 +195,155 @@ const Analytics = () => {
           ))}
         </div>
 
-        {/* Trend Chart */}
+        {/* Choropleth Map and Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Choropleth Map */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <MapPin className="h-5 w-5" />
+                <span>Mapa Coroplético - {currentData.title}</span>
+              </CardTitle>
+              <CardDescription>
+                Distribuição de indicadores por bairros do município
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="relative h-80 bg-gray-50 rounded-lg overflow-hidden border">
+                <svg viewBox="0 0 400 240" className="w-full h-full">
+                  {/* Municipality boundaries */}
+                  <rect x="40" y="10" width="320" height="220" fill="none" stroke="#e5e7eb" strokeWidth="2" />
+                  
+                  {/* Neighborhoods */}
+                  {currentNeighborhoods.map((neighborhood) => {
+                    const colors = getChoroplethColor(neighborhood.value, selectedTopic);
+                    const isHovered = hoveredNeighborhood === neighborhood.id;
+                    
+                    return (
+                      <g key={neighborhood.id}>
+                        <path
+                          d={neighborhood.coords}
+                          fill={colors.light}
+                          stroke={colors.dark}
+                          strokeWidth={isHovered ? "3" : "1"}
+                          className="cursor-pointer transition-all duration-200"
+                          onMouseEnter={() => setHoveredNeighborhood(neighborhood.id)}
+                          onMouseLeave={() => setHoveredNeighborhood(null)}
+                          opacity={isHovered ? 0.9 : 0.7}
+                        />
+                        {/* Neighborhood labels */}
+                        <text
+                          x={neighborhood.id === 'centro' ? 100 : neighborhood.id === 'vila-nova' ? 200 : neighborhood.id === 'jardim-sul' ? 100 : neighborhood.id === 'alto-da-serra' ? 200 : neighborhood.id === 'parque-industrial' ? 300 : 300}
+                          y={neighborhood.id === 'centro' ? 70 : neighborhood.id === 'vila-nova' ? 70 : neighborhood.id === 'jardim-sul' ? 170 : neighborhood.id === 'alto-da-serra' ? 170 : neighborhood.id === 'parque-industrial' ? 85 : 185}
+                          textAnchor="middle"
+                          className="text-xs font-medium fill-gray-700 pointer-events-none"
+                        >
+                          {neighborhood.name.split(' ')[0]}
+                        </text>
+                        <text
+                          x={neighborhood.id === 'centro' ? 100 : neighborhood.id === 'vila-nova' ? 200 : neighborhood.id === 'jardim-sul' ? 100 : neighborhood.id === 'alto-da-serra' ? 200 : neighborhood.id === 'parque-industrial' ? 300 : 300}
+                          y={neighborhood.id === 'centro' ? 85 : neighborhood.id === 'vila-nova' ? 85 : neighborhood.id === 'jardim-sul' ? 185 : neighborhood.id === 'alto-da-serra' ? 185 : neighborhood.id === 'parque-industrial' ? 100 : 200}
+                          textAnchor="middle"
+                          className="text-xs font-bold fill-gray-800 pointer-events-none"
+                        >
+                          {neighborhood.cases}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
+                
+                {/* Tooltip */}
+                {hoveredNeighborhood && (
+                  <div className="absolute top-4 left-4 bg-white p-3 rounded-lg shadow-lg border">
+                    {(() => {
+                      const neighborhood = currentNeighborhoods.find(n => n.id === hoveredNeighborhood);
+                      return (
+                        <div>
+                          <div className="font-semibold text-sm">{neighborhood.name}</div>
+                          <div className="text-sm text-gray-600">Casos: {neighborhood.cases}</div>
+                          <div className="text-sm text-gray-600">Intensidade: {neighborhood.value}%</div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+                
+                {/* Legend */}
+                <div className="absolute bottom-4 right-4 bg-white p-3 rounded-lg shadow-lg border">
+                  <div className="text-xs font-medium mb-2">Intensidade</div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: getChoroplethColor(30, selectedTopic).light }}></div>
+                    <span className="text-xs">Baixa</span>
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: getChoroplethColor(70, selectedTopic).light }}></div>
+                    <span className="text-xs">Média</span>
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: getChoroplethColor(100, selectedTopic).light }}></div>
+                    <span className="text-xs">Alta</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Trend Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Tendência Temporal</CardTitle>
+              <CardDescription>
+                Evolução dos indicadores nos últimos 6 meses
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={currentData.chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  {Object.keys(currentData.chartData[0]).filter(key => key !== 'month').map((key, index) => (
+                    <Line 
+                      key={key}
+                      type="monotone" 
+                      dataKey={key} 
+                      stroke={index === 0 ? currentData.color : '#82ca9d'} 
+                      strokeWidth={2} 
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Neighborhood Details */}
         <Card>
           <CardHeader>
-            <CardTitle>Tendência Temporal</CardTitle>
+            <CardTitle>Detalhes por Bairro</CardTitle>
             <CardDescription>
-              Evolução dos indicadores nos últimos 6 meses
+              Dados detalhados de {currentData.title.toLowerCase()} por bairro do município
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={currentData.chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                {Object.keys(currentData.chartData[0]).filter(key => key !== 'month').map((key, index) => (
-                  <Line 
-                    key={key}
-                    type="monotone" 
-                    dataKey={key} 
-                    stroke={index === 0 ? currentData.color : '#82ca9d'} 
-                    strokeWidth={2} 
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {currentNeighborhoods.map((neighborhood, index) => (
+                <div key={index} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold">{neighborhood.name}</h4>
+                    <div 
+                      className="w-4 h-4 rounded-full border-2 border-white shadow-sm" 
+                      style={{ backgroundColor: getChoroplethColor(neighborhood.value, selectedTopic).dark }}
+                    ></div>
+                  </div>
+                  <p className="text-2xl font-bold" style={{ color: currentData.color }}>
+                    {neighborhood.cases}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Intensidade: {neighborhood.value}%
+                  </p>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
