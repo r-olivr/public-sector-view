@@ -1,11 +1,12 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Layout from '@/components/Layout';
+import LayerImport from '@/components/LayerImport';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Map, Layers, Download, ZoomIn, ZoomOut } from 'lucide-react';
+import { Map, Layers, Download, ZoomIn, Trash2 } from 'lucide-react';
 
 interface MapLayer {
   id: string;
@@ -13,6 +14,9 @@ interface MapLayer {
   type: 'base' | 'overlay';
   visible: boolean;
   description: string;
+  data?: any;
+  imported?: boolean;
+  uploadDate?: string;
 }
 
 const WebGIS = () => {
@@ -48,6 +52,19 @@ const WebGIS = () => {
       description: `Camada ${layers.find(l => l.id === layerId)?.name} ${
         layers.find(l => l.id === layerId)?.visible ? 'desativada' : 'ativada'
       }.`,
+    });
+  };
+
+  const handleLayerImported = (newLayer: MapLayer) => {
+    setLayers(prevLayers => [...prevLayers, newLayer]);
+    console.log('New layer imported:', newLayer);
+  };
+
+  const removeImportedLayer = (layerId: string) => {
+    setLayers(prevLayers => prevLayers.filter(layer => layer.id !== layerId));
+    toast({
+      title: "Camada removida",
+      description: "Camada importada foi removida do mapa.",
     });
   };
 
@@ -129,6 +146,9 @@ const WebGIS = () => {
 
           {/* Control Panel */}
           <div className="space-y-6">
+            {/* Layer Import */}
+            <LayerImport onLayerImported={handleLayerImported} />
+
             {/* Layer Control */}
             <Card>
               <CardHeader>
@@ -169,9 +189,29 @@ const WebGIS = () => {
                       <div className="flex-1">
                         <label htmlFor={layer.id} className="text-sm font-medium cursor-pointer">
                           {layer.name}
+                          {layer.imported && (
+                            <span className="ml-1 text-xs bg-blue-100 text-blue-800 px-1 rounded">
+                              Importada
+                            </span>
+                          )}
                         </label>
                         <p className="text-xs text-gray-500">{layer.description}</p>
+                        {layer.imported && layer.uploadDate && (
+                          <p className="text-xs text-gray-400">
+                            Importada em {new Date(layer.uploadDate).toLocaleDateString('pt-BR')}
+                          </p>
+                        )}
                       </div>
+                      {layer.imported && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeImportedLayer(layer.id)}
+                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -200,6 +240,10 @@ const WebGIS = () => {
                   <span className="text-gray-600">Camadas ativas:</span>
                   <span>{layers.filter(l => l.visible).length}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Camadas importadas:</span>
+                  <span>{layers.filter(l => l.imported).length}</span>
+                </div>
               </CardContent>
             </Card>
 
@@ -220,6 +264,10 @@ const WebGIS = () => {
                 <div className="flex items-center space-x-2">
                   <div className="w-4 h-2 bg-gradient-to-r from-yellow-200 to-red-600"></div>
                   <span className="text-sm">Densidade Pop.</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 bg-green-500 rounded border-2 border-green-700"></div>
+                  <span className="text-sm">Camadas Importadas</span>
                 </div>
               </CardContent>
             </Card>
