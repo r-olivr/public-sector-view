@@ -18,7 +18,7 @@ const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
 
   const navigationItems = [
-    { path: '/', label: 'Dashboard', icon: BarChart3 },
+    { path: '/', label: 'Início', icon: BarChart3 },
     { path: '/dados', label: 'Gestão de Dados', icon: Database },
     { path: '/webgis', label: 'WebGIS', icon: Map },
     { path: '/analytics', label: 'Análises', icon: BarChart3 },
