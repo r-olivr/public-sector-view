@@ -10,6 +10,34 @@ import { useState } from 'react';
 const Analytics = () => {
   const [selectedTopic, setSelectedTopic] = useState('saude');
 
+  // Mock neighborhood data for choropleth map
+  const neighborhoodsData = {
+    saude: [
+      { id: 'centro', name: 'Centro', value: 85, cases: 234, coords: 'M 50,20 L 150,20 L 150,120 L 50,120 Z' },
+      { id: 'vila-nova', name: 'Vila Nova', value: 92, cases: 312, coords: 'M 150,20 L 250,20 L 250,120 L 150,120 Z' },
+      { id: 'jardim-sul', name: 'Jardim Sul', value: 67, cases: 178, coords: 'M 50,120 L 150,120 L 150,220 L 50,220 Z' },
+      { id: 'alto-da-serra', name: 'Alto da Serra', value: 73, cases: 198, coords: 'M 150,120 L 250,120 L 250,220 L 150,220 Z' },
+      { id: 'parque-industrial', name: 'Parque Industrial', value: 89, cases: 267, coords: 'M 250,20 L 350,20 L 350,150 L 250,150 Z' },
+      { id: 'bela-vista', name: 'Bela Vista', value: 78, cases: 189, coords: 'M 250,150 L 350,150 L 350,220 L 250,220 Z' }
+    ],
+    educacao: [
+      { id: 'centro', name: 'Centro', value: 94, cases: 2340, coords: 'M 50,20 L 150,20 L 150,120 L 50,120 Z' },
+      { id: 'vila-nova', name: 'Vila Nova', value: 87, cases: 1890, coords: 'M 150,20 L 250,20 L 250,120 L 150,120 Z' },
+      { id: 'jardim-sul', name: 'Jardim Sul', value: 91, cases: 2156, coords: 'M 50,120 L 150,120 L 150,220 L 50,220 Z' },
+      { id: 'alto-da-serra', name: 'Alto da Serra', value: 89, cases: 1987, coords: 'M 150,120 L 250,120 L 250,220 L 150,220 Z' },
+      { id: 'parque-industrial', name: 'Parque Industrial', value: 93, cases: 2234, coords: 'M 250,20 L 350,20 L 350,150 L 250,150 Z' },
+      { id: 'bela-vista', name: 'Bela Vista', value: 88, cases: 1876, coords: 'M 250,150 L 350,150 L 350,220 L 250,220 Z' }
+    ],
+    seguranca: [
+      { id: 'centro', name: 'Centro', value: 45, cases: 156, coords: 'M 50,20 L 150,20 L 150,120 L 50,120 Z' },
+      { id: 'vila-nova', name: 'Vila Nova', value: 67, cases: 234, coords: 'M 150,20 L 250,20 L 250,120 L 150,120 Z' },
+      { id: 'jardim-sul', name: 'Jardim Sul', value: 23, cases: 89, coords: 'M 50,120 L 150,120 L 150,220 L 50,220 Z' },
+      { id: 'alto-da-serra', name: 'Alto da Serra', value: 34, cases: 123, coords: 'M 150,120 L 250,120 L 250,220 L 150,220 Z' },
+      { id: 'parque-industrial', name: 'Parque Industrial', value: 52, cases: 187, coords: 'M 250,20 L 350,20 L 350,150 L 250,150 Z' },
+      { id: 'bela-vista', name: 'Bela Vista', value: 38, cases: 134, coords: 'M 250,150 L 350,150 L 350,220 L 250,220 Z' }
+    ]
+  };
+
   // Mock data organized by topics
   const topicsData = {
     saude: {
@@ -21,13 +49,6 @@ const Analytics = () => {
         { label: 'Consultas Agendadas', value: '2.340', trend: '+8%', color: 'text-red-600' },
         { label: 'Emergências', value: '456', trend: '-5%', color: 'text-green-600' },
         { label: 'Taxa Ocupação UTI', value: '78%', trend: '+3%', color: 'text-red-600' }
-      ],
-      heatmapData: [
-        { region: 'Centro', lat: -23.55, lng: -46.63, value: 85, cases: 234 },
-        { region: 'Norte', lat: -23.50, lng: -46.65, value: 92, cases: 312 },
-        { region: 'Sul', lat: -23.60, lng: -46.61, value: 67, cases: 178 },
-        { region: 'Leste', lat: -23.53, lng: -46.58, value: 73, cases: 198 },
-        { region: 'Oeste', lat: -23.57, lng: -46.68, value: 89, cases: 267 }
       ],
       chartData: [
         { month: 'Jan', consultas: 1200, emergencias: 89 },
@@ -48,13 +69,6 @@ const Analytics = () => {
         { label: 'Evasão Escolar', value: '3.2%', trend: '-1%', color: 'text-green-600' },
         { label: 'Professores Ativos', value: '847', trend: '+7%', color: 'text-blue-600' }
       ],
-      heatmapData: [
-        { region: 'Centro', lat: -23.55, lng: -46.63, value: 94, cases: 2340 },
-        { region: 'Norte', lat: -23.50, lng: -46.65, value: 87, cases: 1890 },
-        { region: 'Sul', lat: -23.60, lng: -46.61, value: 91, cases: 2156 },
-        { region: 'Leste', lat: -23.53, lng: -46.58, value: 89, cases: 1987 },
-        { region: 'Oeste', lat: -23.57, lng: -46.68, value: 93, cases: 2234 }
-      ],
       chartData: [
         { month: 'Jan', matriculas: 12100, aprovacao: 89 },
         { month: 'Fev', matriculas: 12200, aprovacao: 91 },
@@ -74,13 +88,6 @@ const Analytics = () => {
         { label: 'Furtos/Roubos', value: '567', trend: '-5%', color: 'text-green-600' },
         { label: 'Tempo Resposta', value: '12min', trend: '-2min', color: 'text-green-600' }
       ],
-      heatmapData: [
-        { region: 'Centro', lat: -23.55, lng: -46.63, value: 45, cases: 156 },
-        { region: 'Norte', lat: -23.50, lng: -46.65, value: 67, cases: 234 },
-        { region: 'Sul', lat: -23.60, lng: -46.61, value: 23, cases: 89 },
-        { region: 'Leste', lat: -23.53, lng: -46.58, value: 34, cases: 123 },
-        { region: 'Oeste', lat: -23.57, lng: -46.68, value: 52, cases: 187 }
-      ],
       chartData: [
         { month: 'Jan', ocorrencias: 1420, violentos: 102 },
         { month: 'Fev', ocorrencias: 1380, violentos: 98 },
@@ -93,17 +100,29 @@ const Analytics = () => {
   };
 
   const currentData = topicsData[selectedTopic];
+  const currentNeighborhoods = neighborhoodsData[selectedTopic];
   const TopicIcon = currentData.icon;
 
-  const getHeatmapColor = (value, topic) => {
+  const getChoroplethColor = (value, topic) => {
     const intensity = value / 100;
     const colors = {
-      saude: `rgba(239, 68, 68, ${intensity})`,
-      educacao: `rgba(59, 130, 246, ${intensity})`,
-      seguranca: `rgba(5, 150, 105, ${intensity})`
+      saude: {
+        light: `rgba(239, 68, 68, ${0.2 + intensity * 0.6})`,
+        dark: `rgba(239, 68, 68, ${0.4 + intensity * 0.6})`
+      },
+      educacao: {
+        light: `rgba(59, 130, 246, ${0.2 + intensity * 0.6})`,
+        dark: `rgba(59, 130, 246, ${0.4 + intensity * 0.6})`
+      },
+      seguranca: {
+        light: `rgba(5, 150, 105, ${0.2 + intensity * 0.6})`,
+        dark: `rgba(5, 150, 105, ${0.4 + intensity * 0.6})`
+      }
     };
     return colors[topic];
   };
+
+  const [hoveredNeighborhood, setHoveredNeighborhood] = useState(null);
 
   return (
     <Layout>
@@ -112,7 +131,7 @@ const Analytics = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Análises</h1>
             <p className="text-gray-600 mt-2">
-              Visualizações interativas e mapas de calor por tópico
+              Mapa coroplético e visualizações interativas por tópico
             </p>
           </div>
           
@@ -176,45 +195,89 @@ const Analytics = () => {
           ))}
         </div>
 
-        {/* Interactive Heatmap and Charts */}
+        {/* Choropleth Map and Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Heatmap */}
+          {/* Choropleth Map */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <MapPin className="h-5 w-5" />
-                <span>Mapa de Calor - {currentData.title}</span>
+                <span>Mapa Coroplético - {currentData.title}</span>
               </CardTitle>
               <CardDescription>
-                Distribuição de indicadores por região
+                Distribuição de indicadores por bairros do município
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="relative h-80 bg-gray-100 rounded-lg overflow-hidden">
-                {/* Simplified heatmap visualization */}
-                <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-2 p-4">
-                  {currentData.heatmapData.map((point, index) => (
-                    <div
-                      key={index}
-                      className="relative rounded-lg flex items-center justify-center text-white font-semibold shadow-lg cursor-pointer hover:scale-105 transition-transform"
-                      style={{ backgroundColor: getHeatmapColor(point.value, selectedTopic) }}
-                      title={`${point.region}: ${point.cases} casos (${point.value}% intensidade)`}
-                    >
-                      <div className="text-center">
-                        <div className="text-sm font-bold">{point.region}</div>
-                        <div className="text-xs">{point.cases}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div className="relative h-80 bg-gray-50 rounded-lg overflow-hidden border">
+                <svg viewBox="0 0 400 240" className="w-full h-full">
+                  {/* Municipality boundaries */}
+                  <rect x="40" y="10" width="320" height="220" fill="none" stroke="#e5e7eb" strokeWidth="2" />
+                  
+                  {/* Neighborhoods */}
+                  {currentNeighborhoods.map((neighborhood) => {
+                    const colors = getChoroplethColor(neighborhood.value, selectedTopic);
+                    const isHovered = hoveredNeighborhood === neighborhood.id;
+                    
+                    return (
+                      <g key={neighborhood.id}>
+                        <path
+                          d={neighborhood.coords}
+                          fill={colors.light}
+                          stroke={colors.dark}
+                          strokeWidth={isHovered ? "3" : "1"}
+                          className="cursor-pointer transition-all duration-200"
+                          onMouseEnter={() => setHoveredNeighborhood(neighborhood.id)}
+                          onMouseLeave={() => setHoveredNeighborhood(null)}
+                          opacity={isHovered ? 0.9 : 0.7}
+                        />
+                        {/* Neighborhood labels */}
+                        <text
+                          x={neighborhood.id === 'centro' ? 100 : neighborhood.id === 'vila-nova' ? 200 : neighborhood.id === 'jardim-sul' ? 100 : neighborhood.id === 'alto-da-serra' ? 200 : neighborhood.id === 'parque-industrial' ? 300 : 300}
+                          y={neighborhood.id === 'centro' ? 70 : neighborhood.id === 'vila-nova' ? 70 : neighborhood.id === 'jardim-sul' ? 170 : neighborhood.id === 'alto-da-serra' ? 170 : neighborhood.id === 'parque-industrial' ? 85 : 185}
+                          textAnchor="middle"
+                          className="text-xs font-medium fill-gray-700 pointer-events-none"
+                        >
+                          {neighborhood.name.split(' ')[0]}
+                        </text>
+                        <text
+                          x={neighborhood.id === 'centro' ? 100 : neighborhood.id === 'vila-nova' ? 200 : neighborhood.id === 'jardim-sul' ? 100 : neighborhood.id === 'alto-da-serra' ? 200 : neighborhood.id === 'parque-industrial' ? 300 : 300}
+                          y={neighborhood.id === 'centro' ? 85 : neighborhood.id === 'vila-nova' ? 85 : neighborhood.id === 'jardim-sul' ? 185 : neighborhood.id === 'alto-da-serra' ? 185 : neighborhood.id === 'parque-industrial' ? 100 : 200}
+                          textAnchor="middle"
+                          className="text-xs font-bold fill-gray-800 pointer-events-none"
+                        >
+                          {neighborhood.cases}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
+                
+                {/* Tooltip */}
+                {hoveredNeighborhood && (
+                  <div className="absolute top-4 left-4 bg-white p-3 rounded-lg shadow-lg border">
+                    {(() => {
+                      const neighborhood = currentNeighborhoods.find(n => n.id === hoveredNeighborhood);
+                      return (
+                        <div>
+                          <div className="font-semibold text-sm">{neighborhood.name}</div>
+                          <div className="text-sm text-gray-600">Casos: {neighborhood.cases}</div>
+                          <div className="text-sm text-gray-600">Intensidade: {neighborhood.value}%</div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
                 
                 {/* Legend */}
-                <div className="absolute bottom-4 left-4 bg-white p-2 rounded shadow">
+                <div className="absolute bottom-4 right-4 bg-white p-3 rounded-lg shadow-lg border">
                   <div className="text-xs font-medium mb-2">Intensidade</div>
                   <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 rounded" style={{ backgroundColor: getHeatmapColor(30, selectedTopic) }}></div>
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: getChoroplethColor(30, selectedTopic).light }}></div>
                     <span className="text-xs">Baixa</span>
-                    <div className="w-4 h-4 rounded" style={{ backgroundColor: getHeatmapColor(70, selectedTopic) }}></div>
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: getChoroplethColor(70, selectedTopic).light }}></div>
+                    <span className="text-xs">Média</span>
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: getChoroplethColor(100, selectedTopic).light }}></div>
                     <span className="text-xs">Alta</span>
                   </div>
                 </div>
@@ -253,30 +316,30 @@ const Analytics = () => {
           </Card>
         </div>
 
-        {/* Regional Details */}
+        {/* Neighborhood Details */}
         <Card>
           <CardHeader>
-            <CardTitle>Detalhes por Região</CardTitle>
+            <CardTitle>Detalhes por Bairro</CardTitle>
             <CardDescription>
-              Dados detalhados de {currentData.title.toLowerCase()} por região administrativa
+              Dados detalhados de {currentData.title.toLowerCase()} por bairro do município
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              {currentData.heatmapData.map((region, index) => (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {currentNeighborhoods.map((neighborhood, index) => (
                 <div key={index} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold">{region.region}</h4>
+                    <h4 className="font-semibold">{neighborhood.name}</h4>
                     <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: getHeatmapColor(region.value, selectedTopic) }}
+                      className="w-4 h-4 rounded-full border-2 border-white shadow-sm" 
+                      style={{ backgroundColor: getChoroplethColor(neighborhood.value, selectedTopic).dark }}
                     ></div>
                   </div>
                   <p className="text-2xl font-bold" style={{ color: currentData.color }}>
-                    {region.cases}
+                    {neighborhood.cases}
                   </p>
                   <p className="text-sm text-gray-600">
-                    Intensidade: {region.value}%
+                    Intensidade: {neighborhood.value}%
                   </p>
                 </div>
               ))}
