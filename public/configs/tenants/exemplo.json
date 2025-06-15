@@ -9,5 +9,8 @@
   "favicon": "/lovable-uploads/exemplo_favicon.png",
   "welcome_message": "Sistema Municipal de Gestão de Dados",
   "footer_text": "Prefeitura Municipal - Desenvolvido com Gestão com Dados",
-  "tagline": "Portal de Transparência e Dados"
+  "tagline": "Portal de Transparência e Dados",
+  "background_image": "/lovable-uploads/exemplo_background.jpg",
+  "blur_color": "#16a085",
+  "blur_opacity": 0.5
 }

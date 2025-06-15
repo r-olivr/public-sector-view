@@ -9,5 +9,8 @@
   "favicon": "/lovable-uploads/socorro_favicon.png",
   "welcome_message": "Bem-vindo ao Observatório de Dados de Socorro",
   "footer_text": "Desenvolvido por Observatório de Dados de Socorro",
-  "tagline": "Observatório Municipal"
+  "tagline": "Observatório Municipal",
+  "background_image": "/lovable-uploads/socorro_background.jpg",
+  "blur_color": "#1E90FF",
+  "blur_opacity": 0.3
 }

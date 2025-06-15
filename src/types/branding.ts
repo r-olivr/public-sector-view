@@ -10,6 +10,9 @@ export interface BrandConfig {
   welcome_message?: string;
   footer_text?: string;
   tagline?: string;
+  background_image?: string;
+  blur_color?: string;
+  blur_opacity?: number;
 }
 
 export interface BrandingContextType {

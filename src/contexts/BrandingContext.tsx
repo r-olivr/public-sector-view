@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { BrandConfig, BrandingContextType } from '@/types/branding';
 
@@ -10,7 +9,10 @@ const defaultBrandConfig: BrandConfig = {
   accent_color: '#059669',
   welcome_message: 'Sistema de Gestão Baseada em Evidências',
   footer_text: 'Desenvolvido por Gestão com Dados',
-  tagline: 'Plataforma de gestão pública baseada em evidências'
+  tagline: 'Plataforma de gestão pública baseada em evidências',
+  background_image: '/placeholder.svg',
+  blur_color: '#000000',
+  blur_opacity: 0.4
 };
 
 const BrandingContext = createContext<BrandingContextType | undefined>(undefined);
