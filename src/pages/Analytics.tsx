@@ -1,4 +1,3 @@
-
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { BarChart3, TrendingUp, Users, Calendar, Heart, GraduationCap, Shield, MapPin } from 'lucide-react';
 import { useState } from 'react';
+import ExternalMapFrame from '@/components/ExternalMapFrame';
 
 const Analytics = () => {
   const [selectedTopic, setSelectedTopic] = useState('saude');
@@ -195,95 +195,16 @@ const Analytics = () => {
           ))}
         </div>
 
-        {/* Choropleth Map and Charts */}
+        {/* External Map and Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Choropleth Map */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <MapPin className="h-5 w-5" />
-                <span>Mapa Coroplético - {currentData.title}</span>
-              </CardTitle>
-              <CardDescription>
-                Distribuição de indicadores por bairros do município
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="relative h-80 bg-gray-50 rounded-lg overflow-hidden border">
-                <svg viewBox="0 0 400 240" className="w-full h-full">
-                  {/* Municipality boundaries */}
-                  <rect x="40" y="10" width="320" height="220" fill="none" stroke="#e5e7eb" strokeWidth="2" />
-                  
-                  {/* Neighborhoods */}
-                  {currentNeighborhoods.map((neighborhood) => {
-                    const colors = getChoroplethColor(neighborhood.value, selectedTopic);
-                    const isHovered = hoveredNeighborhood === neighborhood.id;
-                    
-                    return (
-                      <g key={neighborhood.id}>
-                        <path
-                          d={neighborhood.coords}
-                          fill={colors.light}
-                          stroke={colors.dark}
-                          strokeWidth={isHovered ? "3" : "1"}
-                          className="cursor-pointer transition-all duration-200"
-                          onMouseEnter={() => setHoveredNeighborhood(neighborhood.id)}
-                          onMouseLeave={() => setHoveredNeighborhood(null)}
-                          opacity={isHovered ? 0.9 : 0.7}
-                        />
-                        {/* Neighborhood labels */}
-                        <text
-                          x={neighborhood.id === 'centro' ? 100 : neighborhood.id === 'vila-nova' ? 200 : neighborhood.id === 'jardim-sul' ? 100 : neighborhood.id === 'alto-da-serra' ? 200 : neighborhood.id === 'parque-industrial' ? 300 : 300}
-                          y={neighborhood.id === 'centro' ? 70 : neighborhood.id === 'vila-nova' ? 70 : neighborhood.id === 'jardim-sul' ? 170 : neighborhood.id === 'alto-da-serra' ? 170 : neighborhood.id === 'parque-industrial' ? 85 : 185}
-                          textAnchor="middle"
-                          className="text-xs font-medium fill-gray-700 pointer-events-none"
-                        >
-                          {neighborhood.name.split(' ')[0]}
-                        </text>
-                        <text
-                          x={neighborhood.id === 'centro' ? 100 : neighborhood.id === 'vila-nova' ? 200 : neighborhood.id === 'jardim-sul' ? 100 : neighborhood.id === 'alto-da-serra' ? 200 : neighborhood.id === 'parque-industrial' ? 300 : 300}
-                          y={neighborhood.id === 'centro' ? 85 : neighborhood.id === 'vila-nova' ? 85 : neighborhood.id === 'jardim-sul' ? 185 : neighborhood.id === 'alto-da-serra' ? 185 : neighborhood.id === 'parque-industrial' ? 100 : 200}
-                          textAnchor="middle"
-                          className="text-xs font-bold fill-gray-800 pointer-events-none"
-                        >
-                          {neighborhood.cases}
-                        </text>
-                      </g>
-                    );
-                  })}
-                </svg>
-                
-                {/* Tooltip */}
-                {hoveredNeighborhood && (
-                  <div className="absolute top-4 left-4 bg-white p-3 rounded-lg shadow-lg border">
-                    {(() => {
-                      const neighborhood = currentNeighborhoods.find(n => n.id === hoveredNeighborhood);
-                      return (
-                        <div>
-                          <div className="font-semibold text-sm">{neighborhood.name}</div>
-                          <div className="text-sm text-gray-600">Casos: {neighborhood.cases}</div>
-                          <div className="text-sm text-gray-600">Intensidade: {neighborhood.value}%</div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
-                
-                {/* Legend */}
-                <div className="absolute bottom-4 right-4 bg-white p-3 rounded-lg shadow-lg border">
-                  <div className="text-xs font-medium mb-2">Intensidade</div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 rounded" style={{ backgroundColor: getChoroplethColor(30, selectedTopic).light }}></div>
-                    <span className="text-xs">Baixa</span>
-                    <div className="w-4 h-4 rounded" style={{ backgroundColor: getChoroplethColor(70, selectedTopic).light }}></div>
-                    <span className="text-xs">Média</span>
-                    <div className="w-4 h-4 rounded" style={{ backgroundColor: getChoroplethColor(100, selectedTopic).light }}></div>
-                    <span className="text-xs">Alta</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* External Map Frame - Replaces the old choropleth map */}
+          <div className="lg:col-span-2">
+            <ExternalMapFrame 
+              height="500px" 
+              showHeader={true}
+              showControls={true}
+            />
+          </div>
 
           {/* Trend Chart */}
           <Card>

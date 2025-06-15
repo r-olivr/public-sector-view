@@ -1,0 +1,24 @@
+
+/* Responsive iframe styling */
+.iframe-loading {
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Hide loading overlay once iframe loads */
+iframe:not([src=""]) + .iframe-loading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Ensure iframe responsiveness */
+@media (max-width: 768px) {
+  .external-map-container {
+    height: 400px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .external-map-container {
+    height: 300px !important;
+  }
+}

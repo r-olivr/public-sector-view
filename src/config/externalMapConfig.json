@@ -1,0 +1,10 @@
+
+{
+  "mapUrl": "https://example-dash-app.herokuapp.com/",
+  "title": "Mapa Interativo",
+  "description": "Visualização de dados geográficos através de aplicação externa",
+  "height": "600px",
+  "allowFullscreen": true,
+  "sandbox": "allow-scripts allow-same-origin allow-forms allow-popups",
+  "frameBorder": "0"
+}
