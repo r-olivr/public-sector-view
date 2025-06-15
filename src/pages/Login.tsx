@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useBranding } from '@/contexts/BrandingContext';
 import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { user, login } = useAuth();
+  const { brandConfig } = useBranding();
   const { toast } = useToast();
 
   if (user) {
@@ -28,7 +30,7 @@ const Login = () => {
       if (success) {
         toast({
           title: "Login realizado com sucesso!",
-          description: "Bem-vindo ao sistema Gestão com Dados.",
+          description: `Bem-vindo ao ${brandConfig.name}.`,
         });
       } else {
         toast({
@@ -52,8 +54,15 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Gestão com Dados</h1>
-          <p className="text-gray-600">Sistema de Gestão Baseada em Evidências</p>
+          {brandConfig.logo_url && (
+            <img 
+              src={brandConfig.logo_url} 
+              alt={`${brandConfig.name} Logo`}
+              className="h-16 w-auto mx-auto mb-4"
+            />
+          )}
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">{brandConfig.name}</h1>
+          <p className="text-gray-600">{brandConfig.welcome_message}</p>
         </div>
         
         <Card>
@@ -91,7 +100,8 @@ const Login = () => {
               
               <Button 
                 type="submit" 
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                className="w-full"
+                style={{ backgroundColor: brandConfig.primary_color }}
                 disabled={isLoading}
               >
                 {isLoading ? 'Entrando...' : 'Entrar'}

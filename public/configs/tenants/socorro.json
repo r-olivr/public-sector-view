@@ -1,0 +1,13 @@
+
+{
+  "tenant_id": "socorro",
+  "name": "Gestão com Dados - Socorro",
+  "logo_url": "/lovable-uploads/socorro_logo.png",
+  "primary_color": "#1E90FF",
+  "secondary_color": "#FFD700",
+  "accent_color": "#32CD32",
+  "favicon": "/lovable-uploads/socorro_favicon.png",
+  "welcome_message": "Bem-vindo ao Observatório de Dados de Socorro",
+  "footer_text": "Desenvolvido por Observatório de Dados de Socorro",
+  "tagline": "Observatório Municipal"
+}

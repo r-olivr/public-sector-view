@@ -1,0 +1,13 @@
+
+{
+  "tenant_id": "exemplo",
+  "name": "Portal de Dados - Município Exemplo",
+  "logo_url": "/lovable-uploads/exemplo_logo.png",
+  "primary_color": "#16a085",
+  "secondary_color": "#34495e",
+  "accent_color": "#e74c3c",
+  "favicon": "/lovable-uploads/exemplo_favicon.png",
+  "welcome_message": "Sistema Municipal de Gestão de Dados",
+  "footer_text": "Prefeitura Municipal - Desenvolvido com Gestão com Dados",
+  "tagline": "Portal de Transparência e Dados"
+}
