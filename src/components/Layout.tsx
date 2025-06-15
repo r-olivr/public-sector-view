@@ -28,10 +28,10 @@ const Layout = ({ children }: LayoutProps) => {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <BrandedHeader />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
         {/* Navigation */}
         <nav className="mb-8">
-          <div className="flex space-x-4">
+          <div className="flex justify-start space-x-4">
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
@@ -55,7 +55,7 @@ const Layout = ({ children }: LayoutProps) => {
         </nav>
 
         {/* Main Content */}
-        <main>{children}</main>
+        <main className="text-left">{children}</main>
       </div>
       
       <BrandedFooter />
