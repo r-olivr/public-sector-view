@@ -148,7 +148,7 @@ const WebGIS = () => {
                         Aqui será renderizado o mapa interativo com Leaflet.js
                       </p>
                       <p className="text-sm text-gray-400 mt-2">
-                        Mapa Base: {selectedBaseMap.toUpperCase()} | Coordenadas: -23.5505° S, -46.6333° W (São Paulo)
+                        Mapa Base: {selectedBaseMap.toUpperCase()} | Coordenadas: -10.8549° S, -37.1264° W (Nossa Senhora do Socorro)
                       </p>
                     </div>
                   </div>
@@ -193,7 +193,7 @@ const WebGIS = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Centro:</span>
-                  <span>-23.55, -46.63</span>
+                  <span>-10.85, -37.13</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Mapa Base:</span>
