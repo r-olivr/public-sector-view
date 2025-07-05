@@ -30,7 +30,7 @@ const baseMapOptions: BaseMapOption[] = [
 
 const BaseMapSelector = ({ selectedBaseMap, onBaseMapChange }: BaseMapSelectorProps) => {
   return (
-    <div className="absolute top-4 right-4 z-40">
+    <div className="absolute top-4 right-4 z-[1000]">
       <Card className="p-2 shadow-lg bg-white">
         <div className="flex items-center space-x-2 min-w-48">
           <Map className="h-4 w-4 text-gray-600" />

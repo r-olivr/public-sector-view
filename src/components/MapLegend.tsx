@@ -24,7 +24,7 @@ const MapLegend = ({ layers }: MapLegendProps) => {
   }
 
   return (
-    <div className="absolute bottom-4 right-4 z-40 max-w-xs">
+    <div className="absolute bottom-4 right-4 z-[1000] max-w-xs">
       <Card className="shadow-lg bg-white/95 backdrop-blur-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center space-x-1">
