@@ -48,6 +48,10 @@ const DataManagement = () => {
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
   const [columnSearch, setColumnSearch] = useState<string>('');
   const [translateCodes, setTranslateCodes] = useState<boolean>(true);
+  
+  // Upload form states
+  const [uploadCategory, setUploadCategory] = useState<string>('');
+  const [uploadDescription, setUploadDescription] = useState<string>('');
 
   const categories = [
     { value: 'all', label: 'Todas as Categorias' },
@@ -145,11 +149,40 @@ const DataManagement = () => {
       });
       return;
     }
+    
+    if (!uploadCategory) {
+      toast({
+        title: "Erro",
+        description: "Selecione uma categoria para o dataset.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!uploadDescription.trim()) {
+      toast({
+        title: "Erro",
+        description: "Adicione uma descrição para o dataset.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     toast({
       title: "Upload realizado!",
-      description: `Arquivo ${uploadFile.name} foi enviado com sucesso.`,
+      description: `Arquivo ${uploadFile.name} foi enviado com sucesso na categoria ${categories.find(cat => cat.value === uploadCategory)?.label}.`,
     });
+    
+    // Reset form
     setUploadFile(null);
+    setUploadCategory('');
+    setUploadDescription('');
+    
+    // Reset file input
+    const fileInput = document.getElementById('file') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
   };
 
   const handleDownload = (dataset: Dataset) => {
@@ -237,7 +270,7 @@ const DataManagement = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="category">Categoria</Label>
-                    <Select>
+                    <Select value={uploadCategory} onValueChange={setUploadCategory}>
                       <SelectTrigger><SelectValue placeholder="Selecione a categoria" /></SelectTrigger>
                       <SelectContent>
                         {categories.slice(1).map((cat) => (
@@ -249,7 +282,12 @@ const DataManagement = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="description">Descrição</Label>
-                  <Input id="description" placeholder="Descreva o conteúdo do dataset..."/>
+                  <Input 
+                    id="description" 
+                    placeholder="Descreva o conteúdo do dataset..."
+                    value={uploadDescription}
+                    onChange={(e) => setUploadDescription(e.target.value)}
+                  />
                 </div>
                 <Button onClick={handleUpload} className="bg-blue-600 hover:bg-blue-700">
                   <Upload className="h-4 w-4 mr-2" />
