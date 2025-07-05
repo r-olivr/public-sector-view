@@ -8,7 +8,7 @@ import {
   CardTitle,
   CardDescription,
 } from "../components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { Label } from "../components/ui/label";
@@ -20,7 +20,14 @@ import {
   Database,
   Loader2,
   Search,
+  Info,
 } from "lucide-react";
+
+// Utilitário para truncar texto
+function truncateText(text: string, maxLength: number) {
+  if (!text) return "";
+  return text.length > maxLength ? text.slice(0, maxLength - 3) + "..." : text;
+}
 
 type Dataset = {
   id: string;
@@ -30,7 +37,7 @@ type Dataset = {
   uploadDate: string;
   format: string;
   description: string;
-  filename?: string; // Novo campo: filename salvo no backend para download real
+  filename?: string;
 };
 
 type DatabaseTable = {
@@ -46,24 +53,25 @@ type DatabaseColumn = {
   displayName: string;
   type: string;
   description: string;
+  needTranslation?: boolean; // Suporte para coluna de tradução
 };
 
 export default function DataManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // --- Estados para a Aba de Datasets (Upload de Arquivos) ---
+  // Aba de datasets
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadCategory, setUploadCategory] = useState<string>("");
   const [uploadDescription, setUploadDescription] = useState<string>("");
   const [datasets, setDatasets] = useState<Dataset[]>([
-    // Exemplo inicial, arquivos mock.
     { id: "1", name: "Indicadores de Saúde 2024", category: "saude", size: "2.3 MB", uploadDate: "2024-01-15", format: "CSV", description: "Dados consolidados de atendimentos em saúde." },
     { id: "2", name: "Matrículas Escolares 2023-2024", category: "educacao", size: "1.8 MB", uploadDate: "2024-01-10", format: "XLSX", description: "Dados de matrículas por escola e modalidade." },
   ]);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
 
-  // --- Estados para a Aba de Consulta ao Banco de Dados ---
+  // Aba de banco de dados
   const [dbTables, setDbTables] = useState<DatabaseTable[]>([]);
   const [isLoadingTables, setIsLoadingTables] = useState(true);
   const [dbColumns, setDbColumns] = useState<DatabaseColumn[]>([]);
@@ -72,6 +80,9 @@ export default function DataManagement() {
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
   const [columnSearch, setColumnSearch] = useState<string>("");
   const [isQuerying, setIsQuerying] = useState(false);
+
+  // Switch traduzir códigos institucionais
+  const [translateCodes, setTranslateCodes] = useState(false);
 
   // Categorias disponíveis
   const categories = [
@@ -85,13 +96,12 @@ export default function DataManagement() {
     ? datasets
     : datasets.filter(dataset => dataset.category === selectedCategory);
 
-  // --- Handlers de Upload ---
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) setUploadFile(file);
+    if (event.target.files && event.target.files.length > 0) {
+      setUploadFile(event.target.files[0]);
+    }
   };
 
-  // UPLOAD REAL com endpoint /api/upload
   const handleUpload = async () => {
     if (!uploadFile) {
       toast({ title: "Erro", description: "Selecione um arquivo para upload.", variant: "destructive" });
@@ -106,16 +116,22 @@ export default function DataManagement() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append("file", uploadFile);
+    setIsUploading(true);
 
     try {
+      const formData = new FormData();
+      formData.append("file", uploadFile);
+
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       });
 
-      if (!response.ok) throw new Error("Falha no upload.");
+      if (!response.ok) {
+        setIsUploading(false);
+        toast({ title: "Erro", description: "Falha ao realizar upload no servidor.", variant: "destructive" });
+        return;
+      }
 
       const data = await response.json();
 
@@ -127,7 +143,7 @@ export default function DataManagement() {
         uploadDate: new Date().toISOString().split("T")[0],
         format: data.originalname.split(".").pop()?.toUpperCase() || "Arquivo",
         description: uploadDescription,
-        filename: data.filename, // Salva o nome real do arquivo salvo no backend
+        filename: data.filename,
       };
       setDatasets(prev => [newDataset, ...prev]);
 
@@ -136,18 +152,18 @@ export default function DataManagement() {
         description: `Arquivo ${uploadFile.name} enviado com sucesso.`,
       });
 
-      // Reset form
       setUploadFile(null);
       setUploadCategory("");
       setUploadDescription("");
       const fileInput = document.getElementById("file") as HTMLInputElement;
       if (fileInput) fileInput.value = "";
     } catch (error) {
-      toast({ title: "Erro", description: "Não foi possível fazer o upload.", variant: "destructive" });
+      toast({ title: "Erro", description: "Erro inesperado ao enviar arquivo.", variant: "destructive" });
     }
+
+    setIsUploading(false);
   };
 
-  // DOWNLOAD REAL
   const handleDownload = (dataset: Dataset) => {
     if (!dataset.filename) {
       toast({ title: "Erro", description: "Arquivo não disponível para download.", variant: "destructive" });
@@ -166,7 +182,6 @@ export default function DataManagement() {
     });
   };
 
-  // --- Lógica para a Aba de Consulta ao Banco de Dados ---
   useEffect(() => {
     const fetchTables = async () => {
       setIsLoadingTables(true);
@@ -186,13 +201,12 @@ export default function DataManagement() {
   }, [toast]);
 
   useEffect(() => {
-    if (!selectedTable) {
-      setDbColumns([]);
-      return;
-    }
+    setDbColumns([]);
+    setSelectedColumns([]);
+    if (!selectedTable) return;
+
     const fetchColumns = async () => {
       setIsLoadingColumns(true);
-      setSelectedColumns([]);
       try {
         const response = await fetch(`/api/tables/${selectedTable}/columns`);
         if (!response.ok) throw new Error("Falha na resposta da rede");
@@ -223,6 +237,7 @@ export default function DataManagement() {
         body: JSON.stringify({
           tableName: tableInfo?.name,
           columns: columnsInfo.map(c => c.name),
+          translateCodes,
         }),
       });
       if (!response.ok) throw new Error(`Erro na consulta: ${response.statusText}`);
@@ -253,9 +268,13 @@ export default function DataManagement() {
     }
   };
 
+  // Remove duplicadas em filteredColumns por id
   const filteredColumns = dbColumns.filter(column =>
     column.displayName.toLowerCase().includes(columnSearch.toLowerCase()) ||
     column.name.toLowerCase().includes(columnSearch.toLowerCase())
+  );
+  const uniqueFilteredColumns = filteredColumns.filter(
+    (col, idx, arr) => arr.findIndex(c => c.id === col.id) === idx
   );
 
   return (
@@ -263,10 +282,10 @@ export default function DataManagement() {
       <Tabs defaultValue="datasets">
         <TabsList className="mb-8">
           <TabsTrigger value="datasets">Datasets</TabsTrigger>
-          <TabsTrigger value="database">Consultar Banco de Dados</TabsTrigger>
+          <TabsTrigger value="database">Consultar banco de dados</TabsTrigger>
         </TabsList>
 
-        {/* --- ABA DATASETS (UPLOAD & LISTA) --- */}
+        {/* --- DATASETS --- */}
         <TabsContent value="datasets" className="mt-8 space-y-8">
           {user?.role === "admin" && (
             <Card>
@@ -283,11 +302,17 @@ export default function DataManagement() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="file">Arquivo</Label>
-                    <Input id="file" type="file" accept=".csv,.xlsx,.xls,.json" onChange={handleFileUpload} />
+                    <Input
+                      id="file"
+                      type="file"
+                      accept=".csv,.xlsx,.xls,.json"
+                      onChange={handleFileUpload}
+                      disabled={isUploading}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="category">Categoria</Label>
-                    <Select value={uploadCategory} onValueChange={setUploadCategory}>
+                    <Select value={uploadCategory} onValueChange={setUploadCategory} disabled={isUploading}>
                       <SelectTrigger><SelectValue placeholder="Selecione a categoria" /></SelectTrigger>
                       <SelectContent>
                         {categories.slice(1).map((cat) => (
@@ -304,10 +329,19 @@ export default function DataManagement() {
                     placeholder="Descreva o conteúdo do dataset..."
                     value={uploadDescription}
                     onChange={(e) => setUploadDescription(e.target.value)}
+                    disabled={isUploading}
                   />
                 </div>
-                <Button onClick={handleUpload} className="bg-blue-600 hover:bg-blue-700">
-                  <Upload className="h-4 w-4 mr-2" />
+                <Button
+                  onClick={handleUpload}
+                  className="bg-blue-600 hover:bg-blue-700"
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
+                  )}
                   Fazer Upload
                 </Button>
               </CardContent>
@@ -354,7 +388,11 @@ export default function DataManagement() {
                             <span>Uploaded: {new Date(dataset.uploadDate).toLocaleDateString("pt-BR")}</span>
                           </div>
                         </div>
-                        <Button variant="outline" onClick={() => handleDownload(dataset)} className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => handleDownload(dataset)}
+                          className="flex items-center space-x-2"
+                        >
                           <Download className="h-4 w-4" />
                           <span>Baixar</span>
                         </Button>
@@ -375,13 +413,13 @@ export default function DataManagement() {
           </Card>
         </TabsContent>
 
-        {/* --- ABA BANCO DE DADOS (API) --- */}
+        {/* --- BANCO DE DADOS --- */}
         <TabsContent value="database" className="mt-8 space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <div className="lg:col-span-1">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Tabelas Disponíveis</CardTitle>
+                  <CardTitle className="text-base">Tabelas tratadas</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {isLoadingTables ? (
@@ -393,13 +431,22 @@ export default function DataManagement() {
                     <ul>
                       {dbTables.map(table => (
                         <li key={table.id}>
-                          <Button variant={selectedTable === table.name ? "default" : "outline"} className="w-full mb-2" onClick={() => setSelectedTable(table.name)}>
-                            {table.displayName}
+                          <Button
+                            variant={selectedTable === table.name ? "default" : "outline"}
+                            className={`w-full mb-2 text-left justify-start ${selectedTable === table.name ? 'bg-green-100 text-green-800 font-bold' : ''} truncate`}
+                            onClick={() => setSelectedTable(table.name)}
+                            title={table.displayName}
+                          >
+                            {truncateText(table.displayName, 28)}
                           </Button>
                         </li>
                       ))}
                     </ul>
                   )}
+                  <div className="mt-6">
+                    <span className="font-semibold text-sm text-gray-500">Fontes originais</span>
+                    <div className="text-gray-700 text-sm mt-1">Série Histórica Municípios</div>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -420,43 +467,87 @@ export default function DataManagement() {
               ) : (
                 <>
                   <CardHeader>
-                    <CardTitle>Selecione as colunas para consulta:</CardTitle>
-                    <div className="flex items-center space-x-2 mt-4">
-                      <Search className="h-4 w-4 text-gray-400" />
+                    <CardTitle>Selecione as colunas que você deseja acessar:</CardTitle>
+                    <div className="flex items-center space-x-2 mt-4 bg-gray-100 rounded-md px-4 py-2">
+                      <Search className="h-4 w-4 text-gray-500" />
                       <Input
-                        placeholder="Buscar coluna..."
+                        placeholder="Pesquisar colunas"
                         value={columnSearch}
                         onChange={e => setColumnSearch(e.target.value)}
-                        className="w-72"
+                        className="w-72 border-0 bg-gray-100 focus:ring-0"
                       />
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-6">
-                      {filteredColumns.map(column => (
-                        <label key={column.id} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={selectedColumns.includes(column.id)}
-                            onChange={() => {
-                              if (selectedColumns.includes(column.id)) {
-                                setSelectedColumns(selectedColumns.filter(id => id !== column.id));
-                              } else {
-                                setSelectedColumns([...selectedColumns, column.id]);
-                              }
-                            }}
-                          />
-                          <span>{column.displayName}</span>
-                        </label>
-                      ))}
+                    <div className="overflow-auto rounded-lg border border-gray-200 bg-white" style={{ maxHeight: 330 }}>
+                      <table className="min-w-full text-sm text-gray-700">
+                        <thead className="bg-gray-50 sticky top-0 z-10">
+                          <tr>
+                            <th className="w-12 px-2 py-2 text-center"></th>
+                            <th className="px-2 py-2 text-left font-semibold">
+                              Nome
+                              <Info className="inline h-3 w-3 ml-1 text-gray-400" />
+                            </th>
+                            <th className="px-2 py-2 text-left font-semibold">
+                              Precisa de tradução
+                              <Info className="inline h-3 w-3 ml-1 text-gray-400" />
+                            </th>
+                            <th className="px-2 py-2 text-left font-semibold">
+                              Descrição
+                              <Info className="inline h-3 w-3 ml-1 text-gray-400" />
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {uniqueFilteredColumns.map(column => (
+                            <tr key={column.id} className="hover:bg-gray-50">
+                              <td className="px-2 py-2 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedColumns.includes(column.id)}
+                                  onChange={() => {
+                                    if (selectedColumns.includes(column.id)) {
+                                      setSelectedColumns(selectedColumns.filter(id => id !== column.id));
+                                    } else {
+                                      setSelectedColumns([...selectedColumns, column.id]);
+                                    }
+                                  }}
+                                />
+                              </td>
+                              <td className="px-2 py-2">{column.name}</td>
+                              <td className="px-2 py-2">
+                                {column.needTranslation ? "Sim" : "Não"}
+                              </td>
+                              <td className="px-2 py-2">
+                                {column.description}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                    <Button disabled={isQuerying} onClick={handleGenerateQueryAndDownload} className="bg-green-600 hover:bg-green-700">
+                    <div className="flex items-center mt-4">
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          className="accent-green-700"
+                          checked={translateCodes}
+                          onChange={() => setTranslateCodes(t => !t)}
+                        />
+                        <span className="font-medium text-gray-700">Traduzir códigos institucionais</span>
+                      </label>
+                    </div>
+                    <Button
+                      disabled={isQuerying}
+                      onClick={handleGenerateQueryAndDownload}
+                      className="bg-green-700 hover:bg-green-800 mt-4 font-bold w-48"
+                    >
                       {isQuerying ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                       ) : (
                         <Download className="h-4 w-4 mr-2" />
                       )}
-                      Gerar Consulta e Baixar CSV
+                      Gerar consulta
                     </Button>
                   </CardContent>
                 </>
