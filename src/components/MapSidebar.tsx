@@ -1,156 +1,136 @@
-
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ChevronLeft, ChevronRight, Layers, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { Layers, Upload, Download, ChevronLeft, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import LayerImport from './LayerImport'; // Importaremos o componente de importação
 
+// Interface para as propriedades da camada
 interface MapLayer {
   id: string;
   name: string;
-  type: 'base' | 'overlay';
-  category?: 'equipment' | 'biome' | 'statistics' | 'urban' | 'imported';
   visible: boolean;
-  description: string;
-  data?: any;
+  color?: string;
   imported?: boolean;
-  uploadDate?: string;
+  category?: string;
 }
 
+// A sidebar agora precisa de mais props, pois vai lidar com a importação
 interface MapSidebarProps {
   layers: MapLayer[];
   onToggleLayer: (layerId: string) => void;
   onRemoveLayer: (layerId: string) => void;
+  onLayerColorChange: (layerId: string, newColor: string) => void;
+  onLayerImported: (layer: any, color: string) => void; // Prop vinda do MapToolbar
+  onExportMap: () => void; // Prop vinda do MapToolbar
 }
 
-const MapSidebar = ({ layers, onToggleLayer, onRemoveLayer }: MapSidebarProps) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
-    equipment: true,
-    biome: true,
-    statistics: true,
-    urban: true,
-    imported: true,
-  });
+type ActiveView = 'layers' | 'import' | 'export';
 
-  const toggleCategory = (category: string) => {
-    setExpandedCategories(prev => ({
-      ...prev,
-      [category]: !prev[category]
-    }));
+const MapSidebar = (props: MapSidebarProps) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [activeView, setActiveView] = useState<ActiveView>('layers');
+
+  const handleIconClick = (view: ActiveView) => {
+    setActiveView(view);
+    setIsExpanded(true);
   };
 
-  const getCategoryTitle = (category: string) => {
-    switch (category) {
-      case 'equipment': return 'Equipamentos';
-      case 'biome': return 'Bioma';
-      case 'statistics': return 'Estatísticas';
-      case 'urban': return 'Mapa Urbano';
-      case 'imported': return 'Camadas Importadas';
-      default: return 'Outras';
-    }
-  };
-
-  const overlayLayers = layers.filter(layer => layer.type === 'overlay');
-  const layersByCategory = overlayLayers.reduce((acc, layer) => {
+  const layersByCategory = props.layers.reduce((acc, layer) => {
     const category = layer.category || 'imported';
     if (!acc[category]) acc[category] = [];
     acc[category].push(layer);
     return acc;
   }, {} as Record<string, MapLayer[]>);
+  
+  const categoryOrder = ['imported', 'equipment', 'urban', 'statistics', 'biome'];
+  const categoryNames: Record<string, string> = {
+    imported: 'Camadas Importadas',
+    equipment: 'Equipamentos',
+    urban: 'Urbano',
+    statistics: 'Estatísticas',
+    biome: 'Bioma',
+  };
 
   return (
     <div className={cn(
-      "absolute left-4 top-20 z-10 transition-all duration-300 ease-in-out",
-      isCollapsed ? "w-12" : "w-80"
-    )}>
-      <Card className="h-fit shadow-lg">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            {!isCollapsed && (
-              <CardTitle className="flex items-center space-x-2">
-                <Layers className="h-5 w-5" />
-                <span>Controle de Camadas</span>
-              </CardTitle>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="h-8 w-8 p-0"
-            >
-              {isCollapsed ? (
-                <ChevronRight className="h-4 w-4" />
-              ) : (
-                <ChevronLeft className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-        </CardHeader>
-        
-        {!isCollapsed && (
-          <CardContent className="space-y-4 max-h-96 overflow-y-auto">
-            {Object.entries(layersByCategory).map(([category, categoryLayers]) => (
-              <div key={category}>
-                <div 
-                  className="flex items-center justify-between py-2 cursor-pointer hover:bg-gray-50 rounded"
-                  onClick={() => toggleCategory(category)}
-                >
-                  <h4 className="font-medium text-sm text-gray-700">
-                    {getCategoryTitle(category)}
-                  </h4>
-                  {expandedCategories[category] ? (
-                    <ChevronUp className="h-4 w-4 text-gray-500" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 text-gray-500" />
-                  )}
-                </div>
-                
-                {expandedCategories[category] && (
-                  <div className="ml-2 space-y-2">
-                    {categoryLayers.map((layer) => (
-                      <div key={layer.id} className="flex items-center space-x-2 py-2">
-                        <Checkbox
-                          id={layer.id}
-                          checked={layer.visible}
-                          onCheckedChange={() => onToggleLayer(layer.id)}
-                        />
-                        <div className="flex-1">
-                          <label htmlFor={layer.id} className="text-sm font-medium cursor-pointer">
-                            {layer.name}
-                            {layer.imported && (
-                              <span className="ml-1 text-xs bg-blue-100 text-blue-800 px-1 rounded">
-                                Importada
-                              </span>
-                            )}
-                          </label>
-                          <p className="text-xs text-gray-500">{layer.description}</p>
-                          {layer.imported && layer.uploadDate && (
-                            <p className="text-xs text-gray-400">
-                              Importada em {new Date(layer.uploadDate).toLocaleDateString('pt-BR')}
-                            </p>
+        "bg-gray-50 border-r border-gray-200 flex transition-all duration-300 z-20",
+        isExpanded ? 'w-80' : 'w-16'
+      )}>
+      {/* Coluna de Ícones (sempre visível) */}
+      <div className="w-16 flex flex-col items-center space-y-4 py-4 border-r">
+        <Button variant={activeView === 'layers' && isExpanded ? 'secondary' : 'ghost'} size="icon" onClick={() => handleIconClick('layers')}>
+          <Layers className="h-5 w-5" />
+        </Button>
+        <Button variant={activeView === 'import' && isExpanded ? 'secondary' : 'ghost'} size="icon" onClick={() => handleIconClick('import')}>
+          <Upload className="h-5 w-5" />
+        </Button>
+        <Button variant={activeView === 'export' && isExpanded ? 'secondary' : 'ghost'} size="icon" onClick={() => handleIconClick('export')}>
+          <Download className="h-5 w-5" />
+        </Button>
+      </div>
+
+      {/* Painel Expansível */}
+      <div className={cn("flex-grow flex flex-col", { 'hidden': !isExpanded })}>
+        {/* Cabeçalho do Painel Expansível */}
+        <div className="flex items-center p-2 border-b">
+          <Button variant="ghost" size="icon" onClick={() => setIsExpanded(false)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h3 className="font-semibold ml-2">
+            {activeView === 'layers' && 'Controle de Camadas'}
+            {activeView === 'import' && 'Importar Nova Camada'}
+            {activeView === 'export' && 'Exportar Mapa'}
+          </h3>
+        </div>
+
+        {/* Conteúdo Dinâmico do Painel */}
+        <div className="p-4 overflow-y-auto">
+          {activeView === 'layers' && (
+            // Lógica de visualização de camadas que já tínhamos
+             <div className="space-y-4">
+              {categoryOrder.map(category => {
+                  const categoryLayers = layersByCategory[category];
+                  if (!categoryLayers || categoryLayers.length === 0) return null;
+                  return (
+                    <div key={category}>
+                      {/* ... (lógica do accordion/categorias aqui, se desejar) ... */}
+                       {categoryLayers.map((layer) => (
+                        <div key={layer.id} className="text-sm mb-3">
+                          <div className="flex items-center">
+                            <Checkbox id={layer.id} checked={layer.visible} onCheckedChange={() => props.onToggleLayer(layer.id)} />
+                            <Label htmlFor={layer.id} className="ml-2">{layer.name}</Label>
+                          </div>
+                          {layer.imported && (
+                            <div className="flex items-center justify-between mt-2 pl-6">
+                               <Input type="color" value={layer.color || '#3388ff'} onChange={(e) => props.onLayerColorChange(layer.id, e.target.value)} className="p-0 h-6 w-6"/>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 text-red-500 hover:text-red-700" onClick={() => props.onRemoveLayer(layer.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           )}
                         </div>
-                        {layer.imported && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onRemoveLayer(layer.id)}
-                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </CardContent>
-        )}
-      </Card>
+                      ))}
+                    </div>
+                  );
+              })}
+            </div>
+          )}
+          {activeView === 'import' && (
+            <LayerImport onLayerImported={props.onLayerImported} />
+          )}
+          {activeView === 'export' && (
+            <div className="space-y-4">
+              <p>Clique no botão para exportar a visualização atual do mapa como uma imagem.</p>
+              <Button className="w-full" onClick={props.onExportMap}>
+                Exportar para PNG
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

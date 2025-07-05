@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Upload, Download, ZoomIn, Map } from 'lucide-react';
+import { Upload, Download, ZoomIn } from 'lucide-react';
 import LayerImport from './LayerImport';
 import {
   Dialog,
@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 
 interface MapToolbarProps {
-  onLayerImported: (layer: any) => void;
+  onLayerImported: (layer: any, color: string) => void;
   onExportMap: () => void;
   onResetView: () => void;
 }
@@ -22,8 +22,8 @@ interface MapToolbarProps {
 const MapToolbar = ({ onLayerImported, onExportMap, onResetView }: MapToolbarProps) => {
   const [showImportDialog, setShowImportDialog] = useState(false);
 
-  const handleLayerImported = (layer: any) => {
-    onLayerImported(layer);
+  const handleLayerImported = (layer: any, color: string) => {
+    onLayerImported(layer, color);
     setShowImportDialog(false);
   };
 

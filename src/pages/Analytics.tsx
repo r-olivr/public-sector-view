@@ -1,44 +1,43 @@
-import Layout from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { BarChart3, TrendingUp, Users, Calendar, Heart, GraduationCap, Shield, MapPin } from 'lucide-react';
+import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, ResponsiveContainer } from 'recharts';
+import { Heart, GraduationCap, Shield } from 'lucide-react';
 import { useState } from 'react';
 import ExternalMapFrame from '@/components/ExternalMapFrame';
 
 const Analytics = () => {
   const [selectedTopic, setSelectedTopic] = useState('saude');
 
-  // Mock neighborhood data for choropleth map
-  const neighborhoodsData = {
+  // Dados mockados para os bairros (restaurados)
+  const neighborhoodsData: Record<string, { id: string; name: string; value: number; cases: number; }[]> = {
     saude: [
-      { id: 'centro', name: 'Centro', value: 85, cases: 234, coords: 'M 50,20 L 150,20 L 150,120 L 50,120 Z' },
-      { id: 'vila-nova', name: 'Vila Nova', value: 92, cases: 312, coords: 'M 150,20 L 250,20 L 250,120 L 150,120 Z' },
-      { id: 'jardim-sul', name: 'Jardim Sul', value: 67, cases: 178, coords: 'M 50,120 L 150,120 L 150,220 L 50,220 Z' },
-      { id: 'alto-da-serra', name: 'Alto da Serra', value: 73, cases: 198, coords: 'M 150,120 L 250,120 L 250,220 L 150,220 Z' },
-      { id: 'parque-industrial', name: 'Parque Industrial', value: 89, cases: 267, coords: 'M 250,20 L 350,20 L 350,150 L 250,150 Z' },
-      { id: 'bela-vista', name: 'Bela Vista', value: 78, cases: 189, coords: 'M 250,150 L 350,150 L 350,220 L 250,220 Z' }
-    ],
+        { id: 'centro', name: 'Centro', value: 85, cases: 234 },
+        { id: 'vila-nova', name: 'Vila Nova', value: 92, cases: 312 },
+        { id: 'jardim-sul', name: 'Jardim Sul', value: 67, cases: 178 },
+        { id: 'alto-da-serra', name: 'Alto da Serra', value: 73, cases: 198 },
+        { id: 'parque-industrial', name: 'Parque Industrial', value: 89, cases: 267 },
+        { id: 'bela-vista', name: 'Bela Vista', value: 78, cases: 189 }
+      ],
     educacao: [
-      { id: 'centro', name: 'Centro', value: 94, cases: 2340, coords: 'M 50,20 L 150,20 L 150,120 L 50,120 Z' },
-      { id: 'vila-nova', name: 'Vila Nova', value: 87, cases: 1890, coords: 'M 150,20 L 250,20 L 250,120 L 150,120 Z' },
-      { id: 'jardim-sul', name: 'Jardim Sul', value: 91, cases: 2156, coords: 'M 50,120 L 150,120 L 150,220 L 50,220 Z' },
-      { id: 'alto-da-serra', name: 'Alto da Serra', value: 89, cases: 1987, coords: 'M 150,120 L 250,120 L 250,220 L 150,220 Z' },
-      { id: 'parque-industrial', name: 'Parque Industrial', value: 93, cases: 2234, coords: 'M 250,20 L 350,20 L 350,150 L 250,150 Z' },
-      { id: 'bela-vista', name: 'Bela Vista', value: 88, cases: 1876, coords: 'M 250,150 L 350,150 L 350,220 L 250,220 Z' }
+        { id: 'centro', name: 'Centro', value: 94, cases: 2340 },
+        { id: 'vila-nova', name: 'Vila Nova', value: 87, cases: 1890 },
+        { id: 'jardim-sul', name: 'Jardim Sul', value: 91, cases: 2156 },
+        { id: 'alto-da-serra', name: 'Alto da Serra', value: 89, cases: 1987 },
+        { id: 'parque-industrial', name: 'Parque Industrial', value: 93, cases: 2234 },
+        { id: 'bela-vista', name: 'Bela Vista', value: 88, cases: 1876 }
     ],
     seguranca: [
-      { id: 'centro', name: 'Centro', value: 45, cases: 156, coords: 'M 50,20 L 150,20 L 150,120 L 50,120 Z' },
-      { id: 'vila-nova', name: 'Vila Nova', value: 67, cases: 234, coords: 'M 150,20 L 250,20 L 250,120 L 150,120 Z' },
-      { id: 'jardim-sul', name: 'Jardim Sul', value: 23, cases: 89, coords: 'M 50,120 L 150,120 L 150,220 L 50,220 Z' },
-      { id: 'alto-da-serra', name: 'Alto da Serra', value: 34, cases: 123, coords: 'M 150,120 L 250,120 L 250,220 L 150,220 Z' },
-      { id: 'parque-industrial', name: 'Parque Industrial', value: 52, cases: 187, coords: 'M 250,20 L 350,20 L 350,150 L 250,150 Z' },
-      { id: 'bela-vista', name: 'Bela Vista', value: 38, cases: 134, coords: 'M 250,150 L 350,150 L 350,220 L 250,220 Z' }
+        { id: 'centro', name: 'Centro', value: 45, cases: 156 },
+        { id: 'vila-nova', name: 'Vila Nova', value: 67, cases: 234 },
+        { id: 'jardim-sul', name: 'Jardim Sul', value: 23, cases: 89 },
+        { id: 'alto-da-serra', name: 'Alto da Serra', value: 34, cases: 123 },
+        { id: 'parque-industrial', name: 'Parque Industrial', value: 52, cases: 187 },
+        { id: 'bela-vista', name: 'Bela Vista', value: 38, cases: 134 }
     ]
   };
 
-  // Mock data organized by topics
+  // Dados mockados por tópico (restaurados)
   const topicsData = {
     saude: {
       title: 'Indicadores de Saúde',
@@ -99,11 +98,12 @@ const Analytics = () => {
     }
   };
 
-  const currentData = topicsData[selectedTopic];
-  const currentNeighborhoods = neighborhoodsData[selectedTopic];
+  const currentData = topicsData[selectedTopic as keyof typeof topicsData];
+  const currentNeighborhoods = neighborhoodsData[selectedTopic as keyof typeof neighborhoodsData];
   const TopicIcon = currentData.icon;
 
-  const getChoroplethColor = (value, topic) => {
+  // Função que calcula a cor (restaurada)
+  const getChoroplethColor = (value: number, topic: string) => {
     const intensity = value / 100;
     const colors = {
       saude: {
@@ -119,14 +119,11 @@ const Analytics = () => {
         dark: `rgba(5, 150, 105, ${0.4 + intensity * 0.6})`
       }
     };
-    return colors[topic];
+    return colors[topic as keyof typeof colors];
   };
 
-  const [hoveredNeighborhood, setHoveredNeighborhood] = useState(null);
-
   return (
-    <Layout>
-      <div className="space-y-8">
+    <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Análises</h1>
@@ -135,7 +132,6 @@ const Analytics = () => {
             </p>
           </div>
           
-          {/* Topic Selector */}
           <div className="flex items-center space-x-4">
             <Select value={selectedTopic} onValueChange={setSelectedTopic}>
               <SelectTrigger className="w-48">
@@ -143,29 +139,19 @@ const Analytics = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="saude">
-                  <div className="flex items-center space-x-2">
-                    <Heart className="h-4 w-4 text-red-600" />
-                    <span>Saúde</span>
-                  </div>
+                  <div className="flex items-center space-x-2"><Heart className="h-4 w-4 text-red-600" /><span>Saúde</span></div>
                 </SelectItem>
                 <SelectItem value="educacao">
-                  <div className="flex items-center space-x-2">
-                    <GraduationCap className="h-4 w-4 text-blue-600" />
-                    <span>Educação</span>
-                  </div>
+                  <div className="flex items-center space-x-2"><GraduationCap className="h-4 w-4 text-blue-600" /><span>Educação</span></div>
                 </SelectItem>
                 <SelectItem value="seguranca">
-                  <div className="flex items-center space-x-2">
-                    <Shield className="h-4 w-4 text-green-600" />
-                    <span>Segurança</span>
-                  </div>
+                  <div className="flex items-center space-x-2"><Shield className="h-4 w-4 text-green-600" /><span>Segurança</span></div>
                 </SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        {/* Topic Header */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-3">
@@ -177,7 +163,6 @@ const Analytics = () => {
           </CardHeader>
         </Card>
 
-        {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {currentData.kpis.map((kpi, index) => (
             <Card key={index}>
@@ -195,24 +180,14 @@ const Analytics = () => {
           ))}
         </div>
 
-        {/* External Map and Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* External Map Frame - Replaces the old choropleth map */}
           <div className="lg:col-span-2">
-            <ExternalMapFrame 
-              height="500px" 
-              showHeader={true}
-              showControls={true}
-            />
+            <ExternalMapFrame height="500px" showHeader={true} showControls={true}/>
           </div>
-
-          {/* Trend Chart */}
           <Card>
             <CardHeader>
               <CardTitle>Tendência Temporal</CardTitle>
-              <CardDescription>
-                Evolução dos indicadores nos últimos 6 meses
-              </CardDescription>
+              <CardDescription>Evolução dos indicadores nos últimos 6 meses</CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -223,13 +198,7 @@ const Analytics = () => {
                   <Tooltip />
                   <Legend />
                   {Object.keys(currentData.chartData[0]).filter(key => key !== 'month').map((key, index) => (
-                    <Line 
-                      key={key}
-                      type="monotone" 
-                      dataKey={key} 
-                      stroke={index === 0 ? currentData.color : '#82ca9d'} 
-                      strokeWidth={2} 
-                    />
+                    <Line key={key} type="monotone" dataKey={key} stroke={index === 0 ? currentData.color : '#82ca9d'} strokeWidth={2} />
                   ))}
                 </LineChart>
               </ResponsiveContainer>
@@ -237,13 +206,10 @@ const Analytics = () => {
           </Card>
         </div>
 
-        {/* Neighborhood Details */}
         <Card>
           <CardHeader>
             <CardTitle>Detalhes por Bairro</CardTitle>
-            <CardDescription>
-              Dados detalhados de {currentData.title.toLowerCase()} por bairro do município
-            </CardDescription>
+            <CardDescription>Dados detalhados de {currentData.title.toLowerCase()} por bairro do município</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -251,48 +217,29 @@ const Analytics = () => {
                 <div key={index} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-semibold">{neighborhood.name}</h4>
-                    <div 
-                      className="w-4 h-4 rounded-full border-2 border-white shadow-sm" 
-                      style={{ backgroundColor: getChoroplethColor(neighborhood.value, selectedTopic).dark }}
-                    ></div>
+                    <div className="w-4 h-4 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: getChoroplethColor(neighborhood.value, selectedTopic).dark }}></div>
                   </div>
-                  <p className="text-2xl font-bold" style={{ color: currentData.color }}>
-                    {neighborhood.cases}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Intensidade: {neighborhood.value}%
-                  </p>
+                  <p className="text-2xl font-bold" style={{ color: currentData.color }}>{neighborhood.cases}</p>
+                  <p className="text-sm text-gray-600">Intensidade: {neighborhood.value}%</p>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
 
-        {/* Actions */}
         <Card>
           <CardHeader>
             <CardTitle>Ações do Dashboard</CardTitle>
-            <CardDescription>
-              Ferramentas para análise e exportação de {currentData.title.toLowerCase()}
-            </CardDescription>
+            <CardDescription>Ferramentas para análise e exportação de {currentData.title.toLowerCase()}</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Button variant="outline">
-              Exportar Relatório PDF
-            </Button>
-            <Button variant="outline">
-              Baixar Dados Excel
-            </Button>
-            <Button variant="outline">
-              Configurar Alertas
-            </Button>
-            <Button style={{ backgroundColor: currentData.color, color: 'white' }}>
-              Análise Detalhada
-            </Button>
+            <Button variant="outline">Exportar Relatório PDF</Button>
+            <Button variant="outline">Baixar Dados Excel</Button>
+            <Button variant="outline">Configurar Alertas</Button>
+            <Button style={{ backgroundColor: currentData.color, color: 'white' }}>Análise Detalhada</Button>
           </CardContent>
         </Card>
-      </div>
-    </Layout>
+    </div>
   );
 };
 
