@@ -77,7 +77,7 @@ const WebGIS = () => {
         />
         
         {/* PASSO 3: Anexar a referência ao contêiner do mapa */}
-        <div className="relative flex-grow" ref={mapContainerRef}>
+        <div className="relative flex-grow z-10" ref={mapContainerRef}>
           <MapContainer
             center={[-10.8549, -37.1264]}
             zoom={13}

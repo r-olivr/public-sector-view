@@ -1,0 +1,27 @@
+# Definição dos nossos serviços (no caso, apenas o banco de dados)
+services:
+  # O nome do nosso serviço será 'db'
+  db:
+    # A imagem do PostgreSQL que vamos usar. A versão 'alpine' é mais leve.
+    image: postgres:15-alpine
+    # Sempre reiniciar o contêiner se ele parar, a menos que tenhamos parado manualmente.
+    restart: unless-stopped
+    # Nome do contêiner que será criado
+    container_name: public_sector_postgres
+    # Variáveis de ambiente para configurar o PostgreSQL na primeira vez que ele é criado.
+    # IMPORTANTE: Use senhas seguras em projetos reais!
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=gestao_dados
+    # Mapeamento de portas. Conecta a porta 5432 da sua máquina à porta 5432 do contêiner.
+    ports:
+      - "5432:5432"
+    # Volumes para persistir os dados.
+    # Isso garante que seus dados não serão perdidos se você recriar o contêiner.
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+# Define o volume nomeado que declaramos acima
+volumes:
+  postgres_data:

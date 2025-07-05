@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,8 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Download, FileText, Filter, Database, Search } from 'lucide-react';
+import { Upload, Download, FileText, Filter, Database, Search, Loader2 } from 'lucide-react';
 
+// --- Interfaces (Tipos de Dados) ---
 interface Dataset {
   id: string;
   name: string;
@@ -26,7 +27,6 @@ interface DatabaseTable {
   name: string;
   displayName: string;
   description: string;
-  columns: DatabaseColumn[];
 }
 
 interface DatabaseColumn {
@@ -40,107 +40,46 @@ interface DatabaseColumn {
 const DataManagement = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // --- Estados para a Aba de Datasets (Upload de Arquivos) ---
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  
-  // Database query states
+  const [uploadCategory, setUploadCategory] = useState<string>('');
+  const [uploadDescription, setUploadDescription] = useState<string>('');
+  const [datasets, setDatasets] = useState<Dataset[]>([
+    { id: '1', name: 'Indicadores de Saúde 2024', category: 'saude', size: '2.3 MB', uploadDate: '2024-01-15', format: 'CSV', description: 'Dados consolidados de atendimentos em saúde.' },
+    { id: '2', name: 'Matrículas Escolares 2023-2024', category: 'educacao', size: '1.8 MB', uploadDate: '2024-01-10', format: 'XLSX', description: 'Dados de matrículas por escola e modalidade.' },
+  ]);
+
+  // --- Estados para a Aba de Consulta ao Banco de Dados ---
+  const [dbTables, setDbTables] = useState<DatabaseTable[]>([]);
+  const [isLoadingTables, setIsLoadingTables] = useState(true);
+  const [dbColumns, setDbColumns] = useState<DatabaseColumn[]>([]);
+  const [isLoadingColumns, setIsLoadingColumns] = useState(false);
   const [selectedTable, setSelectedTable] = useState<string>('');
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
   const [columnSearch, setColumnSearch] = useState<string>('');
-  const [translateCodes, setTranslateCodes] = useState<boolean>(true);
-  
-  // Upload form states
-  const [uploadCategory, setUploadCategory] = useState<string>('');
-  const [uploadDescription, setUploadDescription] = useState<string>('');
+  const [isQuerying, setIsQuerying] = useState(false);
 
+  // --- Dados Estáticos e Lógica para a Aba de Datasets ---
   const categories = [
     { value: 'all', label: 'Todas as Categorias' },
     { value: 'saude', label: 'Saúde' },
     { value: 'educacao', label: 'Educação' },
     { value: 'seguranca', label: 'Segurança Pública' },
-    { value: 'infraestrutura', label: 'Infraestrutura' },
-    { value: 'social', label: 'Assistência Social' }
   ];
 
-  const mockDatasets: Dataset[] = [
-    {
-      id: '1',
-      name: 'Indicadores de Saúde 2024',
-      category: 'saude',
-      size: '2.3 MB',
-      uploadDate: '2024-01-15',
-      format: 'CSV',
-      description: 'Dados consolidados de atendimentos e indicadores de saúde municipal'
-    },
-    {
-      id: '2',
-      name: 'Matrículas Escolares 2023-2024',
-      category: 'educacao',
-      size: '1.8 MB',
-      uploadDate: '2024-01-10',
-      format: 'XLSX',
-      description: 'Dados de matrículas por escola e modalidade de ensino'
-    },
-    {
-      id: '3',
-      name: 'Ocorrências Policiais 2023',
-      category: 'seguranca',
-      size: '5.2 MB',
-      uploadDate: '2024-01-08',
-      format: 'CSV',
-      description: 'Registro de ocorrências policiais georreferenciadas'
-    }
-  ];
+  const filteredDatasets = selectedCategory === 'all'
+    ? datasets
+    : datasets.filter(dataset => dataset.category === selectedCategory);
 
-  // Mock database tables
-  const mockDatabaseTables: DatabaseTable[] = [
-    {
-      id: 'agua_esgoto',
-      name: 'servicos_agua_esgoto',
-      displayName: 'Serviços de Água e Esgoto nos Municípios',
-      description: 'Dados sobre prestadores de serviços de água e esgoto',
-      columns: [
-        { id: 'nome', name: 'nome', displayName: 'Nome', type: 'string', description: 'Nome do município' },
-        { id: 'populacao_atendida_agua', name: 'populacao_atendida_agua', displayName: 'População Atendida - Água', type: 'number', description: 'AG001 - População total atendida com abastecimento de água' },
-        { id: 'populacao_atendida_esgoto', name: 'populacao_atendida_esgoto', displayName: 'População Atendida - Esgoto', type: 'number', description: 'ES001 - População total atendida com esgotamento sanitário' },
-        { id: 'populacao_urbana', name: 'populacao_urbana', displayName: 'População Urbana', type: 'number', description: 'População urbana do município' },
-        { id: 'populacao_urbana_residente_agua', name: 'populacao_urbana_residente_agua', displayName: 'População Urbana Residente - Água', type: 'number', description: 'G06A - População urbana residente atendida com abastecimento de água' },
-        { id: 'populacao_urbana_atendida_agua', name: 'populacao_urbana_atendida_agua', displayName: 'População Urbana Atendida - Água', type: 'number', description: 'AG026 - População urbana atendida com abastecimento de água' },
-        { id: 'populacao_urbana_atendida_agua_ibge', name: 'populacao_urbana_atendida_agua_ibge', displayName: 'População Urbana Atendida - Água (IBGE)', type: 'number', description: 'G12A - População total residente do município segundo o IBGE' }
-      ]
-    },
-    {
-      id: 'serie_historica',
-      name: 'serie_historica_municipios',
-      displayName: 'Série Histórica Municípios',
-      description: 'Dados históricos dos municípios',
-      columns: [
-        { id: 'municipio', name: 'municipio', displayName: 'Município', type: 'string', description: 'Nome do município' },
-        { id: 'ano', name: 'ano', displayName: 'Ano', type: 'number', description: 'Ano de referência' },
-        { id: 'populacao', name: 'populacao', displayName: 'População', type: 'number', description: 'População total do município' },
-        { id: 'pib', name: 'pib', displayName: 'PIB', type: 'number', description: 'Produto Interno Bruto municipal' }
-      ]
-    }
-  ];
-
-  const filteredDatasets = selectedCategory === 'all' 
-    ? mockDatasets 
-    : mockDatasets.filter(dataset => dataset.category === selectedCategory);
-
-  const selectedTableData = mockDatabaseTables.find(table => table.id === selectedTable);
-  const filteredColumns = selectedTableData?.columns.filter(column => 
-    column.displayName.toLowerCase().includes(columnSearch.toLowerCase()) ||
-    column.name.toLowerCase().includes(columnSearch.toLowerCase())
-  ) || [];
-
+  // --- Handlers de Upload ---
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      setUploadFile(file);
-    }
+    if (file) setUploadFile(file);
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (!uploadFile) {
       toast({
         title: "Erro",
@@ -149,7 +88,6 @@ const DataManagement = () => {
       });
       return;
     }
-    
     if (!uploadCategory) {
       toast({
         title: "Erro",
@@ -158,7 +96,6 @@ const DataManagement = () => {
       });
       return;
     }
-    
     if (!uploadDescription.trim()) {
       toast({
         title: "Erro",
@@ -168,65 +105,142 @@ const DataManagement = () => {
       return;
     }
 
+    // Aqui você pode integrar com sua API de upload!
+    // Por ora só mocka e adiciona à lista local:
+    const newDataset: Dataset = {
+      id: (datasets.length + 1).toString(),
+      name: uploadFile.name,
+      category: uploadCategory,
+      size: `${(uploadFile.size / 1024 / 1024).toFixed(1)} MB`,
+      uploadDate: new Date().toISOString().split('T')[0],
+      format: uploadFile.name.split('.').pop()?.toUpperCase() || 'Arquivo',
+      description: uploadDescription,
+    };
+    setDatasets(prev => [newDataset, ...prev]);
+
     toast({
       title: "Upload realizado!",
-      description: `Arquivo ${uploadFile.name} foi enviado com sucesso na categoria ${categories.find(cat => cat.value === uploadCategory)?.label}.`,
+      description: `Arquivo ${uploadFile.name} enviado com sucesso em ${categories.find(cat => cat.value === uploadCategory)?.label}.`,
     });
-    
+
     // Reset form
     setUploadFile(null);
     setUploadCategory('');
     setUploadDescription('');
-    
-    // Reset file input
     const fileInput = document.getElementById('file') as HTMLInputElement;
-    if (fileInput) {
-      fileInput.value = '';
-    }
+    if (fileInput) fileInput.value = '';
   };
 
   const handleDownload = (dataset: Dataset) => {
+    // Aqui você pode integrar o download real do arquivo
     toast({
       title: "Download iniciado",
       description: `Baixando ${dataset.name}...`,
     });
   };
 
+  // --- Lógica para a Aba de Consulta ao Banco de Dados ---
+  useEffect(() => {
+    const fetchTables = async () => {
+      setIsLoadingTables(true);
+      try {
+        const response = await fetch('/api/tables');
+        if (!response.ok) throw new Error('Falha na resposta da rede');
+        const data = await response.json();
+        setDbTables(data);
+      } catch (error) {
+        toast({ title: "Erro de Conexão", description: "Não foi possível carregar as tabelas do backend.", variant: "destructive" });
+        setDbTables([]);
+      } finally {
+        setIsLoadingTables(false);
+      }
+    };
+    fetchTables();
+  }, [toast]);
+
+  useEffect(() => {
+    if (!selectedTable) {
+      setDbColumns([]);
+      return;
+    }
+    const fetchColumns = async () => {
+      setIsLoadingColumns(true);
+      setSelectedColumns([]);
+      try {
+        const response = await fetch(`/api/tables/${selectedTable}/columns`);
+        if (!response.ok) throw new Error('Falha na resposta da rede');
+        const data = await response.json();
+        setDbColumns(data);
+      } catch (error) {
+        toast({ title: "Erro de Conexão", description: "Não foi possível carregar as colunas da tabela.", variant: "destructive" });
+        setDbColumns([]);
+      } finally {
+        setIsLoadingColumns(false);
+      }
+    };
+    fetchColumns();
+  }, [selectedTable, toast]);
+
+  const handleGenerateQueryAndDownload = async () => {
+    if (!selectedTable || selectedColumns.length === 0) {
+      toast({ title: "Atenção", description: "Selecione uma tabela e pelo menos uma coluna.", variant: "destructive" });
+      return;
+    }
+    setIsQuerying(true);
+    try {
+      const tableInfo = dbTables.find(t => t.name === selectedTable);
+      const columnsInfo = dbColumns.filter(c => selectedColumns.includes(c.id));
+      const response = await fetch('/api/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tableName: tableInfo?.name,
+          columns: columnsInfo.map(c => c.name)
+        })
+      });
+      if (!response.ok) throw new Error(`Erro na consulta: ${response.statusText}`);
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const headers = Object.keys(data[0]);
+        const csvContent = [
+          headers.join(','),
+          ...data.map((row: any) => headers.map(header => JSON.stringify(row[header])).join(',')),
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `${tableInfo?.name}_consulta.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast({ title: "Download Concluído", description: "Sua consulta foi baixada como um arquivo CSV." });
+      } else {
+        toast({ title: "Sem resultados", description: "A consulta não retornou dados." });
+      }
+    } catch (error) {
+      toast({ title: "Erro na Consulta", description: "Não foi possível gerar a consulta. Verifique o console do backend.", variant: "destructive" });
+    } finally {
+      setIsQuerying(false);
+    }
+  };
+
+  const filteredColumns = dbColumns.filter(column =>
+    column.displayName.toLowerCase().includes(columnSearch.toLowerCase()) ||
+    column.name.toLowerCase().includes(columnSearch.toLowerCase())
+  );
+
   const handleColumnToggle = (columnId: string, checked: boolean) => {
-    setSelectedColumns(prev => 
-      checked 
+    setSelectedColumns(prev =>
+      checked
         ? [...prev, columnId]
         : prev.filter(id => id !== columnId)
     );
   };
 
   const handleSelectAllColumns = (checked: boolean) => {
-    if (checked) {
-      setSelectedColumns(filteredColumns.map(col => col.id));
-    } else {
-      setSelectedColumns([]);
-    }
-  };
-
-  const handleGenerateQuery = () => {
-    if (!selectedTable || selectedColumns.length === 0) {
-      toast({
-        title: "Erro",
-        description: "Selecione uma tabela e pelo menos uma coluna.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const selectedTableData = mockDatabaseTables.find(table => table.id === selectedTable);
-    const selectedColumnNames = selectedColumns.map(colId => 
-      selectedTableData?.columns.find(col => col.id === colId)?.displayName
-    ).join(', ');
-
-    toast({
-      title: "Consulta gerada!",
-      description: `Baixando dados de ${selectedTableData?.displayName} com colunas: ${selectedColumnNames}`,
-    });
+    setSelectedColumns(checked ? filteredColumns.map(c => c.id) : []);
   };
 
   return (
@@ -234,22 +248,17 @@ const DataManagement = () => {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Gestão de Dados</h1>
         <p className="text-gray-600 mt-2">
-          Faça upload, organize e baixe datasets para análise e tomada de decisão
+          Faça upload de datasets ou consulte o banco de dados diretamente.
         </p>
       </div>
 
       <Tabs defaultValue="datasets" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="datasets" className="flex items-center space-x-2">
-            <FileText className="h-4 w-4" />
-            <span>Datasets</span>
-          </TabsTrigger>
-          <TabsTrigger value="database" className="flex items-center space-x-2">
-            <Database className="h-4 w-4" />
-            <span>Consultar Base de Dados</span>
-          </TabsTrigger>
+          <TabsTrigger value="datasets">Datasets (Arquivos)</TabsTrigger>
+          <TabsTrigger value="database">Consultar Banco de Dados</TabsTrigger>
         </TabsList>
 
+        {/* --- ABA DATASETS (UPLOAD & LISTA) --- */}
         <TabsContent value="datasets" className="mt-8 space-y-8">
           {user?.role === 'admin' && (
             <Card>
@@ -266,7 +275,7 @@ const DataManagement = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="file">Arquivo</Label>
-                    <Input id="file" type="file" accept=".csv,.xlsx,.xls,.json" onChange={handleFileUpload}/>
+                    <Input id="file" type="file" accept=".csv,.xlsx,.xls,.json" onChange={handleFileUpload} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="category">Categoria</Label>
@@ -282,8 +291,8 @@ const DataManagement = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="description">Descrição</Label>
-                  <Input 
-                    id="description" 
+                  <Input
+                    id="description"
                     placeholder="Descreva o conteúdo do dataset..."
                     value={uploadDescription}
                     onChange={(e) => setUploadDescription(e.target.value)}
@@ -361,146 +370,117 @@ const DataManagement = () => {
           </div>
         </TabsContent>
 
+        {/* --- ABA BANCO DE DADOS (API) --- */}
         <TabsContent value="database" className="mt-8 space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Sidebar with tables */}
             <div className="lg:col-span-1">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Tabelas Tratadas</CardTitle>
+                  <CardTitle className="text-base">Tabelas Disponíveis</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {mockDatabaseTables.map((table) => (
-                    <div
-                      key={table.id}
-                      className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                        selectedTable === table.id 
-                          ? 'bg-green-100 border-l-4 border-green-500 text-green-800' 
-                          : 'hover:bg-gray-100'
-                      }`}
-                      onClick={() => {
-                        setSelectedTable(table.id);
-                        setSelectedColumns([]);
-                        setColumnSearch('');
-                      }}
-                    >
-                      <div className="text-sm font-medium">{table.displayName}</div>
-                      <div className="text-xs text-gray-500 mt-1">{table.description}</div>
+                  {isLoadingTables ? (
+                    <div className="flex items-center justify-center p-4 text-sm text-gray-500">
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      Carregando...
                     </div>
-                  ))}
+                  ) : (
+                    dbTables.map((table) => (
+                      <div
+                        key={table.id}
+                        className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                          selectedTable === table.name
+                            ? 'bg-blue-100 border-l-4 border-blue-500 text-blue-800'
+                            : 'hover:bg-gray-100'
+                        }`}
+                        onClick={() => setSelectedTable(table.name)}
+                      >
+                        <div className="text-sm font-medium">{table.displayName}</div>
+                        <div className="text-xs text-gray-500 mt-1">{table.description}</div>
+                      </div>
+                    ))
+                  )}
                 </CardContent>
               </Card>
             </div>
 
-            {/* Main content area */}
             <div className="lg:col-span-3">
-              {selectedTable ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Selecione as colunas que você deseja acessar:</CardTitle>
-                    <div className="flex items-center space-x-2 mt-4">
-                      <Search className="h-4 w-4 text-gray-400" />
-                      <Input
-                        placeholder="Pesquisar colunas"
-                        value={columnSearch}
-                        onChange={(e) => setColumnSearch(e.target.value)}
-                        className="flex-1"
-                      />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {/* Select All Checkbox */}
-                      <div className="flex items-center space-x-2 pb-2 border-b">
+              <Card className="min-h-[30rem]">
+                {!selectedTable ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                    <Database className="h-16 w-16 text-gray-300 mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-700">Selecione uma tabela</h3>
+                    <p className="text-gray-500 text-sm">
+                      Escolha uma tabela na lista à esquerda para começar a montar sua consulta.
+                    </p>
+                  </div>
+                ) : isLoadingColumns ? (
+                  <div className="flex flex-col items-center justify-center h-full">
+                     <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+                     <p className="mt-2 text-sm text-gray-500">Carregando colunas...</p>
+                  </div>
+                ) : (
+                  <>
+                    <CardHeader>
+                      <CardTitle>Selecione as colunas para consulta:</CardTitle>
+                      <div className="flex items-center space-x-2 mt-4">
+                        <Search className="h-4 w-4 text-gray-400" />
+                        <Input
+                          placeholder="Pesquisar colunas..."
+                          value={columnSearch}
+                          onChange={(e) => setColumnSearch(e.target.value)}
+                        />
+                      </div>
+                    </CardHeader>
+                    <CardContent className="flex flex-col h-[calc(100%-8rem)]">
+                      <div className="flex items-center space-x-2 p-2 border-b">
                         <Checkbox
                           id="select-all"
-                          checked={selectedColumns.length === filteredColumns.length && filteredColumns.length > 0}
-                          onCheckedChange={handleSelectAllColumns}
+                          checked={filteredColumns.length > 0 && selectedColumns.length === filteredColumns.length}
+                          onCheckedChange={(checked) => handleSelectAllColumns(checked as boolean)}
+                          disabled={filteredColumns.length === 0}
                         />
                         <Label htmlFor="select-all" className="text-sm font-medium">
-                          Selecionar todas as colunas ({filteredColumns.length})
+                          Selecionar Todas ({filteredColumns.length})
                         </Label>
                       </div>
 
-                      {/* Columns Table */}
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-12"></TableHead>
-                            <TableHead>Nome</TableHead>
-                            <TableHead>Precisa de tradução</TableHead>
-                            <TableHead>Descrição</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredColumns.map((column) => (
-                            <TableRow key={column.id}>
-                              <TableCell>
-                                <Checkbox
-                                  checked={selectedColumns.includes(column.id)}
-                                  onCheckedChange={(checked) => handleColumnToggle(column.id, checked as boolean)}
-                                />
-                              </TableCell>
-                              <TableCell className="font-medium">{column.name}</TableCell>
-                              <TableCell>
-                                <span className="text-sm text-gray-600">Não</span>
-                              </TableCell>
-                              <TableCell>
-                                <span className="text-sm text-gray-600">{column.description}</span>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-
-                      {filteredColumns.length === 0 && (
-                        <div className="text-center py-8 text-gray-500">
-                          Nenhuma coluna encontrada para o termo pesquisado.
-                        </div>
-                      )}
-
-                      {/* Options and Generate Button */}
-                      <div className="flex items-center justify-between pt-4 border-t">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="translate-codes"
-                            checked={translateCodes}
-                            onCheckedChange={(checked) => setTranslateCodes(checked === true)}
-                          />
-                          <Label htmlFor="translate-codes" className="text-sm">
-                            Traduzir códigos institucionais
-                          </Label>
-                        </div>
-                        <Button 
-                          onClick={handleGenerateQuery}
-                          className="bg-green-600 hover:bg-green-700"
-                          disabled={selectedColumns.length === 0}
-                        >
-                          Gerar consulta
-                        </Button>
+                      <div className="flex-grow overflow-y-auto">
+                        <Table>
+                          <TableBody>
+                            {filteredColumns.map((column) => (
+                              <TableRow key={column.id}>
+                                <TableCell className="w-12">
+                                  <Checkbox
+                                    checked={selectedColumns.includes(column.id)}
+                                    onCheckedChange={(checked) => handleColumnToggle(column.id, checked as boolean)}
+                                  />
+                                </TableCell>
+                                <TableCell className="font-medium">{column.displayName}</TableCell>
+                                <TableCell className="text-sm text-gray-500">{column.description}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
                       </div>
 
-                      {selectedColumns.length > 0 && (
-                        <div className="mt-4 p-3 bg-green-50 rounded-lg">
-                          <p className="text-sm text-green-800">
-                            <strong>{selectedColumns.length}</strong> colunas selecionadas de <strong>{selectedTableData?.displayName}</strong>
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card>
-                  <CardContent className="p-12 text-center">
-                    <Database className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Selecione uma tabela</h3>
-                    <p className="text-gray-600">
-                      Escolha uma tabela no painel lateral para começar a selecionar as colunas que deseja consultar.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
+                      <div className="flex items-center justify-end pt-4 border-t mt-auto">
+                        <Button
+                          onClick={handleGenerateQueryAndDownload}
+                          disabled={isQuerying || selectedColumns.length === 0}
+                        >
+                          {isQuerying ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Download className="h-4 w-4 mr-2" />
+                          )}
+                          {isQuerying ? 'Consultando...' : `Gerar e Baixar (${selectedColumns.length})`}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </>
+                )}
+              </Card>
             </div>
           </div>
         </TabsContent>
