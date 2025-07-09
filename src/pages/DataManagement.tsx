@@ -1,27 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { useToast } from "../components/ui/use-toast";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "../components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
+import { Database, Loader2, Search, Info, Download } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
-import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import {
-  Upload,
-  Download,
-  FileText,
-  Database,
-  Loader2,
-  Search,
-  Info,
-} from "lucide-react";
+import { useToast } from "../hooks/use-toast";
+import { DataCatalog } from "../components/DataCatalog";
+import { AdminDatasetUpload } from "../components/AdminDatasetUpload";
+import { LocalDatasetManager } from "../components/LocalDatasetManager";
 
 // Utilitário para truncar texto
 function truncateText(text: string, maxLength: number) {
@@ -53,25 +41,20 @@ type DatabaseColumn = {
   displayName: string;
   type: string;
   description: string;
-  needTranslation?: boolean; // Suporte para coluna de tradução
+  needTranslation?: boolean;
 };
 
 export default function DataManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Aba de datasets
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [uploadCategory, setUploadCategory] = useState<string>("");
-  const [uploadDescription, setUploadDescription] = useState<string>("");
+  // Local datasets state
   const [datasets, setDatasets] = useState<Dataset[]>([
     { id: "1", name: "Indicadores de Saúde 2024", category: "saude", size: "2.3 MB", uploadDate: "2024-01-15", format: "CSV", description: "Dados consolidados de atendimentos em saúde." },
     { id: "2", name: "Matrículas Escolares 2023-2024", category: "educacao", size: "1.8 MB", uploadDate: "2024-01-10", format: "XLSX", description: "Dados de matrículas por escola e modalidade." },
   ]);
-  const [isUploading, setIsUploading] = useState<boolean>(false);
 
-  // Aba de banco de dados
+  // Database query state
   const [dbTables, setDbTables] = useState<DatabaseTable[]>([]);
   const [isLoadingTables, setIsLoadingTables] = useState(true);
   const [dbColumns, setDbColumns] = useState<DatabaseColumn[]>([]);
@@ -80,8 +63,6 @@ export default function DataManagement() {
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
   const [columnSearch, setColumnSearch] = useState<string>("");
   const [isQuerying, setIsQuerying] = useState(false);
-
-  // Switch traduzir códigos institucionais
   const [translateCodes, setTranslateCodes] = useState(false);
 
   // Categorias disponíveis
@@ -92,94 +73,8 @@ export default function DataManagement() {
     { value: "seguranca", label: "Segurança Pública" },
   ];
 
-  const filteredDatasets = selectedCategory === "all"
-    ? datasets
-    : datasets.filter(dataset => dataset.category === selectedCategory);
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files.length > 0) {
-      setUploadFile(event.target.files[0]);
-    }
-  };
-
-  const handleUpload = async () => {
-    if (!uploadFile) {
-      toast({ title: "Erro", description: "Selecione um arquivo para upload.", variant: "destructive" });
-      return;
-    }
-    if (!uploadCategory) {
-      toast({ title: "Erro", description: "Selecione uma categoria para o dataset.", variant: "destructive" });
-      return;
-    }
-    if (!uploadDescription.trim()) {
-      toast({ title: "Erro", description: "Adicione uma descrição para o dataset.", variant: "destructive" });
-      return;
-    }
-
-    setIsUploading(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", uploadFile);
-
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        setIsUploading(false);
-        toast({ title: "Erro", description: "Falha ao realizar upload no servidor.", variant: "destructive" });
-        return;
-      }
-
-      const data = await response.json();
-
-      const newDataset: Dataset = {
-        id: (datasets.length + 1).toString(),
-        name: data.originalname,
-        category: uploadCategory,
-        size: `${(data.size / 1024 / 1024).toFixed(1)} MB`,
-        uploadDate: new Date().toISOString().split("T")[0],
-        format: data.originalname.split(".").pop()?.toUpperCase() || "Arquivo",
-        description: uploadDescription,
-        filename: data.filename,
-      };
-      setDatasets(prev => [newDataset, ...prev]);
-
-      toast({
-        title: "Upload realizado!",
-        description: `Arquivo ${uploadFile.name} enviado com sucesso.`,
-      });
-
-      setUploadFile(null);
-      setUploadCategory("");
-      setUploadDescription("");
-      const fileInput = document.getElementById("file") as HTMLInputElement;
-      if (fileInput) fileInput.value = "";
-    } catch (error) {
-      toast({ title: "Erro", description: "Erro inesperado ao enviar arquivo.", variant: "destructive" });
-    }
-
-    setIsUploading(false);
-  };
-
-  const handleDownload = (dataset: Dataset) => {
-    if (!dataset.filename) {
-      toast({ title: "Erro", description: "Arquivo não disponível para download.", variant: "destructive" });
-      return;
-    }
-    const link = document.createElement("a");
-    link.href = `/api/download/${dataset.filename}`;
-    link.download = dataset.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    toast({
-      title: "Download iniciado",
-      description: `Baixando ${dataset.name}...`,
-    });
+  const handleDatasetAdded = (newDataset: Dataset) => {
+    setDatasets(prev => [newDataset, ...prev]);
   };
 
   useEffect(() => {
@@ -279,139 +174,30 @@ export default function DataManagement() {
 
   return (
     <div className="container mx-auto mt-8">
-      <Tabs defaultValue="datasets">
+      <Tabs defaultValue="catalog">
         <TabsList className="mb-8">
-          <TabsTrigger value="datasets">Datasets</TabsTrigger>
-          <TabsTrigger value="database">Consultar banco de dados</TabsTrigger>
+          <TabsTrigger value="catalog">Catálogo CKAN</TabsTrigger>
+          <TabsTrigger value="local">Datasets Locais</TabsTrigger>
+          {user?.role === "admin" && <TabsTrigger value="upload">Upload</TabsTrigger>}
+          <TabsTrigger value="database">Consultar BD</TabsTrigger>
         </TabsList>
 
-        {/* --- DATASETS --- */}
-        <TabsContent value="datasets" className="mt-8 space-y-8">
-          {user?.role === "admin" && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Upload className="h-5 w-5" />
-                  <span>Upload de Datasets</span>
-                </CardTitle>
-                <CardDescription>
-                  Adicione novos conjuntos de dados ao sistema
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="file">Arquivo</Label>
-                    <Input
-                      id="file"
-                      type="file"
-                      accept=".csv,.xlsx,.xls,.json"
-                      onChange={handleFileUpload}
-                      disabled={isUploading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Categoria</Label>
-                    <Select value={uploadCategory} onValueChange={setUploadCategory} disabled={isUploading}>
-                      <SelectTrigger><SelectValue placeholder="Selecione a categoria" /></SelectTrigger>
-                      <SelectContent>
-                        {categories.slice(1).map((cat) => (
-                          <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Descrição</Label>
-                  <Input
-                    id="description"
-                    placeholder="Descreva o conteúdo do dataset..."
-                    value={uploadDescription}
-                    onChange={(e) => setUploadDescription(e.target.value)}
-                    disabled={isUploading}
-                  />
-                </div>
-                <Button
-                  onClick={handleUpload}
-                  className="bg-blue-600 hover:bg-blue-700"
-                  disabled={isUploading}
-                >
-                  {isUploading ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Upload className="h-4 w-4 mr-2" />
-                  )}
-                  Fazer Upload
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <FileText className="h-5 w-5" />
-                <span>Lista de Datasets</span>
-              </CardTitle>
-              <CardDescription>
-                Exporte ou gerencie os dados disponíveis
-              </CardDescription>
-              <div className="mt-4">
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="w-64">
-                    <SelectValue placeholder="Filtrar por categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-4">
-                {filteredDatasets.map((dataset) => (
-                  <Card key={dataset.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-2">
-                          <h3 className="text-lg font-semibold">{dataset.name}</h3>
-                          <p className="text-gray-600 text-sm">{dataset.description}</p>
-                          <div className="flex items-center space-x-4 text-sm text-gray-500">
-                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                              {categories.find(cat => cat.value === dataset.category)?.label}
-                            </span>
-                            <span>{dataset.format}</span>
-                            <span>{dataset.size}</span>
-                            <span>Uploaded: {new Date(dataset.uploadDate).toLocaleDateString("pt-BR")}</span>
-                          </div>
-                        </div>
-                        <Button
-                          variant="outline"
-                          onClick={() => handleDownload(dataset)}
-                          className="flex items-center space-x-2"
-                        >
-                          <Download className="h-4 w-4" />
-                          <span>Baixar</span>
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-              {filteredDatasets.length === 0 && (
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">Nenhum dataset encontrado para esta categoria.</p>
-                  </CardContent>
-                </Card>
-              )}
-            </CardContent>
-          </Card>
+        {/* CKAN Data Catalog */}
+        <TabsContent value="catalog" className="mt-8">
+          <DataCatalog />
         </TabsContent>
+
+        {/* Local Datasets */}
+        <TabsContent value="local" className="mt-8">
+          <LocalDatasetManager datasets={datasets} categories={categories} />
+        </TabsContent>
+
+        {/* Admin Upload */}
+        {user?.role === "admin" && (
+          <TabsContent value="upload" className="mt-8">
+            <AdminDatasetUpload onDatasetAdded={handleDatasetAdded} categories={categories} />
+          </TabsContent>
+        )}
 
         {/* --- BANCO DE DADOS --- */}
         <TabsContent value="database" className="mt-8 space-y-6">
