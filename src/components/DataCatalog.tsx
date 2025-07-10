@@ -1,295 +1,182 @@
-import React, { useState } from 'react';
-import { Search, Download, Calendar, Tag, Building, FileText, Filter, Eye } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Search, Settings, Database } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
-import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { useCkan, CkanDataset } from '../hooks/useCkan';
-import { DataVisualization } from './DataVisualization';
+
+declare global {
+  interface Window {
+    CKANembed: {
+      search: (selector: string, ckanUrl: string, options: any) => void;
+    };
+  }
+}
 
 export function DataCatalog() {
-  const { datasets, loading, totalCount, searchDatasets, downloadResource } = useCkan();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('metadata_modified desc');
-  const [selectedDataset, setSelectedDataset] = useState<CkanDataset | null>(null);
-  const [showVisualization, setShowVisualization] = useState(false);
+  const [ckanUrl, setCkanUrl] = useState('https://demo.ckan.org');
+  const [organization, setOrganization] = useState('');
+  const [rows, setRows] = useState('10');
+  const [sortBy, setSortBy] = useState('title_string_pt asc');
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    searchDatasets({
-      q: searchQuery,
-      sort: sortBy,
-      rows: 20
-    });
+  const initializeCKANEmbed = () => {
+    if (window.CKANembed && ckanUrl) {
+      // Clear previous content
+      const container = document.getElementById('ckan-container-datasets');
+      if (container) {
+        container.innerHTML = '<p>Carregando conjuntos de dados...</p>';
+      }
+
+      const options: any = {
+        rows: parseInt(rows),
+        sort: sortBy,
+        lang: 'pt',
+        noresult: '<p>Nenhum conjunto de dados foi encontrado.</p>',
+        template: `
+          <article style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px; background: white;">
+            <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600;">
+              <a href="<%= ds.url %>" target="_blank" style="color: #2563eb; text-decoration: none;">
+                <%= ds.title %>
+              </a>
+            </h3>
+            <p style="margin: 0 0 12px 0; color: #64748b; font-size: 14px; line-height: 1.5;">
+              <%= ds.description %>
+            </p>
+            <div style="display: flex; align-items: center; gap: 16px; font-size: 12px; color: #64748b;">
+              <span><strong>Formatos:</strong> <%= ds.formats.toUpperCase() %></span>
+              <span><strong>Organização:</strong> <%= ds.organization %></span>
+              <span><strong>Atualizado:</strong> <%= ds.metadata_modified %></span>
+            </div>
+          </article>
+        `
+      };
+
+      if (organization) {
+        options.fq = `organization:${organization}`;
+      }
+
+      window.CKANembed.search('#ckan-container-datasets', ckanUrl, options);
+    }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
-  };
+  useEffect(() => {
+    // Wait for the CKAN embed script to load
+    const checkCKANEmbed = setInterval(() => {
+      if (window.CKANembed) {
+        clearInterval(checkCKANEmbed);
+        initializeCKANEmbed();
+      }
+    }, 100);
 
-  const formatFileSize = (bytes?: number) => {
-    if (!bytes) return 'Tamanho não especificado';
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+    return () => clearInterval(checkCKANEmbed);
+  }, []);
+
+  const handleRefresh = () => {
+    initializeCKANEmbed();
   };
 
   return (
     <div className="space-y-6">
-      {/* Search and Filters */}
+      {/* Configuration Panel */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Configuração do Portal CKAN
+          </CardTitle>
+          <CardDescription>
+            Configure a URL do portal CKAN e filtros para exibir os datasets
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="ckan-url" className="block text-sm font-medium mb-2">
+                URL do Portal CKAN
+              </label>
+              <Input
+                id="ckan-url"
+                value={ckanUrl}
+                onChange={(e) => setCkanUrl(e.target.value)}
+                placeholder="https://demo.ckan.org"
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label htmlFor="organization" className="block text-sm font-medium mb-2">
+                Organização (opcional)
+              </label>
+              <Input
+                id="organization"
+                value={organization}
+                onChange={(e) => setOrganization(e.target.value)}
+                placeholder="nome-da-organizacao"
+                className="w-full"
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="rows" className="block text-sm font-medium mb-2">
+                Número de resultados
+              </label>
+              <Select value={rows} onValueChange={setRows}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5 resultados</SelectItem>
+                  <SelectItem value="10">10 resultados</SelectItem>
+                  <SelectItem value="20">20 resultados</SelectItem>
+                  <SelectItem value="50">50 resultados</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label htmlFor="sort" className="block text-sm font-medium mb-2">
+                Ordenação
+              </label>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="title_string_pt asc">Título A-Z</SelectItem>
+                  <SelectItem value="title_string_pt desc">Título Z-A</SelectItem>
+                  <SelectItem value="metadata_modified desc">Mais recentes</SelectItem>
+                  <SelectItem value="metadata_modified asc">Mais antigos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <Button onClick={handleRefresh} className="w-full md:w-auto">
+            <Database className="h-4 w-4 mr-2" />
+            Carregar Datasets
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* CKAN Embed Container */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
-            Catálogo de Dados
+            Catálogo de Dados CKAN
           </CardTitle>
           <CardDescription>
-            Explore e baixe datasets do repositório CKAN
+            Datasets carregados dinamicamente do portal CKAN configurado
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSearch} className="space-y-4">
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <Input
-                  placeholder="Buscar datasets..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Ordenar por" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="metadata_modified desc">Mais recentes</SelectItem>
-                  <SelectItem value="metadata_modified asc">Mais antigos</SelectItem>
-                  <SelectItem value="title_string asc">Nome A-Z</SelectItem>
-                  <SelectItem value="title_string desc">Nome Z-A</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button type="submit" disabled={loading}>
-                <Search className="h-4 w-4 mr-2" />
-                Buscar
-              </Button>
-            </div>
-          </form>
-          
-          {totalCount > 0 && (
-            <p className="text-sm text-muted-foreground mt-4">
-              Encontrados {totalCount} datasets
+          <div id="ckan-container-datasets" className="min-h-[200px]">
+            <p className="text-center text-muted-foreground py-8">
+              Configure o portal CKAN acima e clique em "Carregar Datasets" para ver os resultados
             </p>
-          )}
+          </div>
         </CardContent>
       </Card>
-
-      {/* Dataset Results */}
-      <div className="grid gap-4">
-        {loading ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Carregando datasets...</p>
-            </CardContent>
-          </Card>
-        ) : datasets.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Nenhum dataset encontrado</p>
-            </CardContent>
-          </Card>
-        ) : (
-          datasets.map((dataset) => (
-            <Card key={dataset.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  {/* Header */}
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-2 flex-1">
-                      <h3 className="text-lg font-semibold text-primary">
-                        {dataset.title || dataset.name}
-                      </h3>
-                      <p className="text-sm text-muted-foreground line-clamp-3">
-                        {dataset.notes || 'Sem descrição disponível'}
-                      </p>
-                    </div>
-                    <div className="flex gap-2 ml-4">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="sm" onClick={() => setSelectedDataset(dataset)}>
-                            <Eye className="h-4 w-4 mr-1" />
-                            Ver detalhes
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                          <DialogHeader>
-                            <DialogTitle>{dataset.title || dataset.name}</DialogTitle>
-                          </DialogHeader>
-                          <div className="space-y-6">
-                            <div>
-                              <h4 className="font-medium mb-2">Descrição</h4>
-                              <p className="text-sm text-muted-foreground">
-                                {dataset.notes || 'Sem descrição disponível'}
-                              </p>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <h4 className="font-medium mb-2">Informações</h4>
-                                <div className="space-y-1 text-sm">
-                                  <p><strong>Autor:</strong> {dataset.author || 'Não especificado'}</p>
-                                  <p><strong>Criado:</strong> {formatDate(dataset.metadata_created)}</p>
-                                  <p><strong>Atualizado:</strong> {formatDate(dataset.metadata_modified)}</p>
-                                  {dataset.organization && (
-                                    <p><strong>Organização:</strong> {dataset.organization.title}</p>
-                                  )}
-                                </div>
-                              </div>
-                              
-                              <div>
-                                <h4 className="font-medium mb-2">Tags</h4>
-                                <div className="flex flex-wrap gap-1">
-                                  {dataset.tags.map((tag, index) => (
-                                    <Badge key={index} variant="secondary" className="text-xs">
-                                      {tag.name}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div>
-                              <h4 className="font-medium mb-2">Recursos ({dataset.resources.length})</h4>
-                              <div className="space-y-2">
-                                {dataset.resources.map((resource) => (
-                                  <div key={resource.id} className="flex items-center justify-between p-3 border rounded-md">
-                                    <div className="flex-1">
-                                      <p className="font-medium text-sm">{resource.name || 'Recurso sem nome'}</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {resource.format} • {formatFileSize(resource.size)}
-                                      </p>
-                                    </div>
-                                    <div className="flex gap-2">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => downloadResource(resource)}
-                                      >
-                                        <Download className="h-4 w-4 mr-1" />
-                                        Baixar
-                                      </Button>
-                                      {resource.format.toLowerCase().includes('csv') && (
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => {
-                                            setSelectedDataset(dataset);
-                                            setShowVisualization(true);
-                                          }}
-                                        >
-                                          <FileText className="h-4 w-4 mr-1" />
-                                          Visualizar
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                  </div>
-
-                  {/* Metadata */}
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    {dataset.organization && (
-                      <div className="flex items-center gap-1">
-                        <Building className="h-4 w-4" />
-                        <span>{dataset.organization.title}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      <span>Atualizado em {formatDate(dataset.metadata_modified)}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <FileText className="h-4 w-4" />
-                      <span>{dataset.resources.length} recursos</span>
-                    </div>
-                  </div>
-
-                  {/* Tags */}
-                  {dataset.tags.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <Tag className="h-4 w-4 text-muted-foreground" />
-                      <div className="flex flex-wrap gap-1">
-                        {dataset.tags.slice(0, 5).map((tag, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {tag.name}
-                          </Badge>
-                        ))}
-                        {dataset.tags.length > 5 && (
-                          <Badge variant="secondary" className="text-xs">
-                            +{dataset.tags.length - 5} mais
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Resources Preview */}
-                  <div className="flex flex-wrap gap-2">
-                    {dataset.resources.slice(0, 3).map((resource) => (
-                      <div key={resource.id} className="flex items-center gap-2 p-2 bg-muted rounded-md">
-                        <Badge variant="outline" className="text-xs">
-                          {resource.format}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground truncate max-w-32">
-                          {resource.name}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => downloadResource(resource)}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Download className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
-                    {dataset.resources.length > 3 && (
-                      <div className="flex items-center p-2 text-xs text-muted-foreground">
-                        +{dataset.resources.length - 3} mais recursos
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
-
-      {/* Data Visualization Dialog */}
-      {showVisualization && selectedDataset && (
-        <Dialog open={showVisualization} onOpenChange={setShowVisualization}>
-          <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
-            <DialogHeader>
-              <DialogTitle>Visualização de Dados - {selectedDataset.title}</DialogTitle>
-            </DialogHeader>
-            <DataVisualization 
-              dataset={selectedDataset}
-              onClose={() => setShowVisualization(false)}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 }
