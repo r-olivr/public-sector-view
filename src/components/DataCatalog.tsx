@@ -19,15 +19,13 @@ export function DataCatalog() {
         container.innerHTML = '<p style="text-align: center; padding: 20px; color: #64748b;">Carregando conjuntos de dados...</p>';
       }
 
-      // Configuration for CKAN embed using the correct API
+      // Simple configuration - let the embed script use its default template
       const options = {
-        fq: '*:*',  // Search all datasets
         rows: 10,
-        sort: 'metadata_modified desc',
         lang: 'pt'
       };
 
-      // Use the correct CKANembed.datasets() method with search query
+      // Use the correct CKANembed.datasets() method with minimal config
       window.CKANembed.datasets('#ckan-container-datasets', 'http://localhost:81/', options);
     }
   };
