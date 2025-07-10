@@ -21,12 +21,13 @@ export function DataCatalog() {
 
       // Configuration for CKAN embed using the correct API
       const options = {
+        fq: '*:*',  // Search all datasets
         rows: 10,
         sort: 'metadata_modified desc',
         lang: 'pt'
       };
 
-      // Use the correct CKANembed.datasets() method
+      // Use the correct CKANembed.datasets() method with search query
       window.CKANembed.datasets('#ckan-container-datasets', 'http://localhost:81/', options);
     }
   };
